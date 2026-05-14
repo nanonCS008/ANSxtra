@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 // Predefined hero images from /PHOTOS/Shuffle/
 const HERO_IMAGES = [
@@ -41,8 +41,13 @@ const INTERVAL_MS = 4500
 const FADE_DURATION_MS = 1200
 
 export function HeroImageShuffle() {
-  const images = useMemo(() => shuffleArray(HERO_IMAGES), [])
+  // Stable order on server + first client paint avoids hydration mismatch (random shuffle only after mount).
+  const [images, setImages] = useState<string[]>(HERO_IMAGES)
   const [step, setStep] = useState(0)
+
+  useEffect(() => {
+    setImages(shuffleArray(HERO_IMAGES))
+  }, [])
 
   useEffect(() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches

@@ -6,26 +6,28 @@ import { Button } from '../ui/Button'
 import { Container } from '../ui/Container'
 import { HeroImageShuffle } from './HeroImageShuffle'
 
+// Stable reference — avoids exhaustive-deps churn and keeps effect deps minimal.
+const TYPEWRITER_PHRASES = [
+  'Built different',
+  'For students, by students',
+  'Where students lead',
+  'Connect beyond the classroom',
+  'Beyond the classroom walls',
+  'Student-powered community',
+  'Create, connect, grow',
+  'Your passions, your way',
+  'Where ideas take flight',
+  'More than a club',
+] as const
+
 // Typewriter effect for the tagline
 function TypewriterText() {
-  const phrases = [
-    'Built different',
-    'For students, by students',
-    'Where students lead',
-    'Connect beyond the classroom',
-    'Beyond the classroom walls',
-    'Student-powered community',
-    'Create, connect, grow',
-    'Your passions, your way',
-    'Where ideas take flight',
-    'More than a club',
-  ]
   const [currentPhrase, setCurrentPhrase] = useState(0)
   const [displayText, setDisplayText] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
-    const phrase = phrases[currentPhrase]
+    const phrase = TYPEWRITER_PHRASES[currentPhrase]
     const timeout = setTimeout(() => {
       if (!isDeleting) {
         if (displayText.length < phrase.length) {
@@ -38,13 +40,13 @@ function TypewriterText() {
           setDisplayText(displayText.slice(0, -1))
         } else {
           setIsDeleting(false)
-          setCurrentPhrase((prev) => (prev + 1) % phrases.length)
+          setCurrentPhrase((prev) => (prev + 1) % TYPEWRITER_PHRASES.length)
         }
       }
     }, isDeleting ? 30 : 80)
 
     return () => clearTimeout(timeout)
-  }, [displayText, isDeleting, currentPhrase, phrases])
+  }, [displayText, isDeleting, currentPhrase])
 
   return (
     <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-pink to-brand-purple">

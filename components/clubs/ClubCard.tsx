@@ -136,9 +136,7 @@ export function ClubCard({ club, compact, selectable, selected, onSelect, applie
       <h3 className="club-card-title font-extrabold text-white text-sm tracking-tight transition-colors duration-200 min-h-[1.25rem]">{club.displayName ?? club.name}</h3>
 
       {cardSummary && (
-        <p className="text-white/80 text-xs leading-snug min-h-[2rem]">
-          {cardSummary}
-        </p>
+        <p className="text-white/80 text-xs leading-snug min-h-[2rem]">{cardSummary}</p>
       )}
 
       <div className="flex flex-wrap items-center gap-1.5 min-h-[1.5rem]">
