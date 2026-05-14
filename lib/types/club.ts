@@ -43,6 +43,8 @@ export interface Club {
   image: string
   images?: string[]
   applicationQuestionsRaw?: string | null
+  /** Extra chips on browse cards (e.g. "New club") */
+  cardExtraTags?: string[]
 }
 
 export interface JoinSubmission {

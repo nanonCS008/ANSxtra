@@ -7,6 +7,7 @@ import { DukeJourneyMap } from '@/components/clubs/DukeJourneyMap'
 import { SchoolShowThemeSelector } from '@/components/clubs/SchoolShowThemeSelector'
 import { TEDxLivestreamArchive } from '@/components/clubs/TEDxLivestreamArchive'
 import { ThemeEffectsLayer } from '@/components/clubs/ThemeEffectsLayer'
+import { InteractClubDetail } from '@/components/clubs/InteractClubDetail'
 import { Button } from '@/components/ui/Button'
 import { Container } from '@/components/ui/Container'
 import {
@@ -196,6 +197,7 @@ export default function ClubDetailPage() {
   const params = useParams()
   const clubId = params.id as string
   const club = getClubById(clubId)
+  const isInteract = clubId === 'interact-club'
   const { status: authStatus } = useSession()
   const [alreadyApplied, setAlreadyApplied] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -285,9 +287,10 @@ export default function ClubDetailPage() {
   const HEADER_BACKGROUND_IMAGE: Partial<Record<string, string>> = {
     'duke-of-edinburgh': '/clubs/PHOTOS/Duke of Edinburgh/Mainduke.JPG',
     'eco-committee': '/clubs/PHOTOS/Eco Committee/MainECO.PNG',
-    'interact-club': '/clubs/PHOTOS/Interact Club/IMG_3052.PNG',
+    'interact-club': '/clubs/PHOTOS/Interact Club/InteractMainHero.PNG',
     'spark-club': '/clubs/PHOTOS/SPARK Club/IMG_3008.JPG',
     'tedx': '/clubs/PHOTOS/TEDX/750_8105.JPG',
+    'student-council': '/clubs/PHOTOS/Student Council/card-main.png',
   }
   const headerBackgroundImage = isSchoolShow
       ? (schoolShowImages[0] || null)
@@ -296,13 +299,23 @@ export default function ClubDetailPage() {
   const HEADER_BACKGROUND_POSITION: Partial<Record<string, string>> = {
     'duke-of-edinburgh': '28% 50%',
     'tedx': '50% 75%',
-    'interact-club': '50% 28%',
+    'interact-club': '50% 54%',
     'eco-committee': '50% 32%',
     'unicef-ambassador': '50% 72%',
+    'student-council': '50% 38%',
   }
   const headerBackgroundPosition = isSchoolShow
     ? '50% 50%'
     : (HEADER_BACKGROUND_POSITION[clubId] ?? '50% 50%')
+
+  /** Interact hero: gentle zoom with a mid-frame anchor so the crop favours the middle of the photo, not the ceiling strip. */
+  const interactHeroBgZoom =
+    !isSchoolShow && clubId === 'interact-club'
+      ? ({
+          transform: 'scale(1.1) translateZ(0)',
+          transformOrigin: '50% 54%',
+        } as const)
+      : null
 
   const needsDarkText = useMemo(() => {
     if (isDuke && doeTheme) return true
@@ -322,7 +335,9 @@ export default function ClubDetailPage() {
   const heroGradientOverlay = `linear-gradient(to right, ${tintHex}40 0%, ${tintHex}20 40%, transparent 70%)`
 
   const openLightbox = (index: number) => {
-    setLightboxIndex(index)
+    const n = galleryImages.length
+    const max = n > 0 ? n - 1 : 0
+    setLightboxIndex(Math.min(Math.max(0, index), max))
     setLightboxOpen(true)
   }
 
@@ -426,6 +441,7 @@ export default function ClubDetailPage() {
                 backgroundImage: `url("${headerBackgroundImage}")`,
                 backgroundPosition: headerBackgroundPosition,
                 zIndex: 0,
+                ...(interactHeroBgZoom ?? {}),
               }}
               aria-hidden
             />
@@ -673,6 +689,7 @@ export default function ClubDetailPage() {
                 )}
               </div>
             )}
+            {club.id === 'interact-club' && <InteractClubDetail tintHex={effectiveTintHex} />}
             {/* MUN: simulation + expectations from leaders */}
             {club.id === 'mun' && (
               <div className="mb-5 space-y-6">
@@ -701,7 +718,7 @@ export default function ClubDetailPage() {
               </div>
             )}
             {/* Roles */}
-            {club.roles.length > 0 && (
+            {club.roles.length > 0 && !isInteract && (
               <div className="mb-5">
                 <h2 className="text-sm font-bold text-white mb-2 tracking-tight">Available Roles</h2>
                 <div className="flex flex-wrap gap-1.5">

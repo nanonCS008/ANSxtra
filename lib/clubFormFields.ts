@@ -25,8 +25,6 @@ const FIELDS_BY_CLUB: Record<string, FieldDef[]> = {
     { key: 'why_join', kind: 'textarea', label: 'Why do you want to join the School Show?', required: true, minLength: 5 },
   ],
   'spark-club': [
-    { key: 'name', kind: 'text', label: 'Name', required: false },
-    { key: 'year_group', kind: 'text', label: 'Year group', required: false },
     { key: 'old_new_member', kind: 'radio', label: 'Old member / new member', required: true, options: ['Old member', 'New member'] },
     { key: 'why_join', kind: 'textarea', label: 'Why do you want to join SPARK club / your expectations of the club', required: true, minLength: 5 },
     {
@@ -39,20 +37,23 @@ const FIELDS_BY_CLUB: Record<string, FieldDef[]> = {
     { key: 'field_of_interests_other', kind: 'text', label: 'Other (please specify)', required: false, placeholder: 'Type your field of interest...' },
   ],
   'interact-club': [
-    { key: 'name', kind: 'text', label: 'Name', required: false },
-    { key: 'year', kind: 'text', label: 'Year', required: false },
     { key: 'why_join', kind: 'textarea', label: 'Why do they want to join the Interact Club', required: true, minLength: 5 },
     {
       key: 'which_roles',
       kind: 'checkboxGroup',
-      label: 'Which roles (e.g. Finance events social media) would they like to be a part of?',
+      label: 'Which roles would they like to join? (Several students can share each role—typically around 1–10 per role.)',
       required: true,
-      options: ['Finance', 'Events', 'Social Media'],
+      options: [
+        'Treasurer',
+        'Secretary',
+        'Coordinators',
+        'Public Relations',
+        'Fundraising / events',
+        'Operators',
+      ],
     },
   ],
   'eco-committee': [
-    { key: 'name', kind: 'text', label: 'Name', required: false },
-    { key: 'year_group', kind: 'text', label: 'Year group', required: false },
     { key: 'why_join', kind: 'textarea', label: 'Why do they want to join the eco committee', required: true, minLength: 5 },
     { key: 'how_will_joining_affect_you', kind: 'textarea', label: 'How will joining this club affect them as an individual?', required: true, minLength: 5 },
   ],
@@ -77,9 +78,6 @@ const FIELDS_BY_CLUB: Record<string, FieldDef[]> = {
     { key: 'medical_conditions', kind: 'textarea', label: 'Do you have any medical conditions or considerations we should be aware of?', required: true, minLength: 2 },
   ],
   'unicef-ambassador': [
-    { key: 'name', kind: 'text', label: 'Name', required: false },
-    { key: 'year_group', kind: 'text', label: 'Year Group', required: false },
-    { key: 'house', kind: 'text', label: 'House', required: true },
     {
       key: 'which_group',
       kind: 'checkboxGroup',
@@ -88,6 +86,37 @@ const FIELDS_BY_CLUB: Record<string, FieldDef[]> = {
       options: ['Event team', 'Graphics design team'],
     },
   ],
+  'student-council': [
+    {
+      key: 'why_join',
+      kind: 'textarea',
+      label: 'Why do you want to join the Student Council?',
+      required: true,
+      minLength: 5,
+    },
+    {
+      key: 'qualities_fit',
+      kind: 'textarea',
+      label: 'What qualities do you have that would make you a good Student Council member?',
+      required: true,
+      minLength: 5,
+    },
+    {
+      key: 'leadership_teamwork_example',
+      kind: 'textarea',
+      label: 'Describe a time when you demonstrated leadership or teamwork:',
+      required: true,
+      minLength: 5,
+    },
+    {
+      key: 'school_improvement_ideas',
+      kind: 'textarea',
+      label: 'What ideas do you have for improving our school?',
+      required: true,
+      minLength: 5,
+    },
+  ],
+  'enterprise-club': [],
   tedx: [
     {
       key: 'describe_talk_learned',

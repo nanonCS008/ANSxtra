@@ -5,10 +5,9 @@ const BLANK_PLACEHOLDER_ID = 'blank'
 
 const PinnedOrder: string[] = [
   'duke-of-edinburgh',
+  'student-council',
   'school-show',
-  'tedx',
   'mun',
-  'operation-smile',
   'interact-club',
 ]
 
@@ -33,6 +32,17 @@ export function getClubs(): Club[] {
   const rest = clubs
     .filter((c) => !pinnedIds.has(c.id))
     .sort((a, b) => hashId(a.id) - hashId(b.id))
+
+  // Explicit order tweak: swap Eco Committee and Operation Smile in the browse grid
+  const iEco = rest.findIndex((c) => c.id === 'eco-committee')
+  const iOs = rest.findIndex((c) => c.id === 'operation-smile')
+  if (iEco !== -1 && iOs !== -1) {
+    const copy = [...rest]
+    copy[iEco] = rest[iOs]
+    copy[iOs] = rest[iEco]
+    return [...pinned, ...copy]
+  }
+
   return [...pinned, ...rest]
 }
 

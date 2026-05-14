@@ -31,6 +31,8 @@ export function ClubHeaderWidget({ clubId, tintHex, className }: ClubHeaderWidge
       return <RoleSpotlight tintHex={tintHex} className={className} />
     case 'tedx':
       return <TEDxIdeaBuilder tintHex={tintHex} className={className} />
+    case 'enterprise-club':
+      return <EnterpriseLanes tintHex={tintHex} className={className} />
     default:
       return null
   }
@@ -101,11 +103,22 @@ function KindnessChallenge({ tintHex, className }: { tintHex: string; className?
   )
 }
 
-const ROLES = [{ icon: '📊', label: 'Finance' }, { icon: '🎉', label: 'Events' }, { icon: '📱', label: 'Social Media' }]
+const ROLES = [
+  { icon: '💰', label: 'Treasurer' },
+  { icon: '📝', label: 'Secretary' },
+  { icon: '🎯', label: 'Coordinators' },
+  { icon: '📣', label: 'Public Relations' },
+  { icon: '🎪', label: 'Fundraising / events' },
+  { icon: '⚙️', label: 'Operators' },
+]
 function ServicePillars({ tintHex, className }: { tintHex: string; className?: string }) {
   return (
     <div className={cn(CARD_BASE, CARD_PADDING, className)} style={{ borderColor: `${tintHex}40`, backgroundColor: 'rgba(255,255,255,0.03)' }}>
-      <p className="text-[11px] uppercase tracking-widest font-semibold mb-3" style={{ color: tintHex }}>Service pillars</p>
+      <p className="text-[11px] uppercase tracking-widest font-semibold mb-1" style={{ color: tintHex }}>Rotary International · Youth Service</p>
+      <p className="text-white/55 text-xs mb-3 leading-snug">
+        Sponsored by a local Rotary club. Roles are shared teams—often several students per role—covering finance, records,
+        coordination, comms, events, and day-to-day operations.
+      </p>
       <div className="flex flex-wrap gap-2">
         {ROLES.map((r) => (
           <span
@@ -178,5 +191,26 @@ function RoleSpotlight({ tintHex, className }: { tintHex: string; className?: st
       <p className="text-white font-semibold text-lg">{role}</p>
       <p className="text-white/40 text-xs mt-3">Tap to explore roles →</p>
     </button>
+  )
+}
+
+const ENTERPRISE_LANES = [
+  { title: 'Pitch', sub: 'Stress-test ideas fast' },
+  { title: 'Build', sub: 'Design, price, package' },
+  { title: 'Sell', sub: 'Trading sessions on campus' },
+]
+function EnterpriseLanes({ tintHex, className }: { tintHex: string; className?: string }) {
+  return (
+    <div className={cn(CARD_BASE, CARD_PADDING, className)} style={{ borderColor: `${tintHex}40`, backgroundColor: 'rgba(255,255,255,0.03)' }}>
+      <p className="text-[11px] uppercase tracking-widest font-semibold mb-3" style={{ color: tintHex }}>Your term in three moves</p>
+      <div className="grid grid-cols-3 gap-2">
+        {ENTERPRISE_LANES.map((lane) => (
+          <div key={lane.title} className="rounded-lg px-2 py-2 text-center" style={{ backgroundColor: `${tintHex}18`, border: `1px solid ${tintHex}35` }}>
+            <p className="text-white text-xs font-bold">{lane.title}</p>
+            <p className="text-white/60 text-[10px] mt-1 leading-tight">{lane.sub}</p>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }

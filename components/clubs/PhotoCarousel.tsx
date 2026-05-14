@@ -8,7 +8,7 @@ import {
 } from '@/lib/carouselTransitions'
 import { cn } from '@/lib/utils/cn'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 interface PhotoCarouselProps {
   images: string[]
@@ -38,6 +38,13 @@ export function PhotoCarousel({
 
   const count = images.length
   const cinematic = variant === 'cinematic'
+
+  useEffect(() => {
+    setCurrent((prev) => {
+      if (images.length === 0) return 0
+      return prev >= images.length ? 0 : prev
+    })
+  }, [images.length])
 
   const preset: CarouselTransitionPreset = useMemo(
     () => (clubId ? getCarouselPresetForClub(clubId) : 'slide'),
@@ -166,7 +173,7 @@ export function PhotoCarousel({
               borderLeftColor: accentHex,
             }}
           >
-            {cinematic ? `Scene ${current + 1} / ${count}` : `${current + 1} / ${count}`}
+            {cinematic ? `Scene ${current + 1} / ${count}` : `Photo ${current + 1} / ${count}`}
           </span>
         )}
       </div>

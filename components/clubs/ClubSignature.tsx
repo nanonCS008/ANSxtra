@@ -32,6 +32,8 @@ export function ClubSignature({ clubId, category, tintHex, className }: ClubSign
     case 'unicef-ambassador':
     case 'spark-club':
     case 'interact-club':
+    case 'student-council':
+    case 'enterprise-club':
       return <SparkleHover tintHex={tintHex} reduced={prefersReduced} className={className} />
     case 'eco-committee':
       return <LeafFloat tintHex={tintHex} reduced={prefersReduced} className={className} />

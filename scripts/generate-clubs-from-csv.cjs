@@ -30,7 +30,14 @@ const CLUB_NAME_TO_META = {
 
 /** Roles not in CSV; keep for join form / display */
 const ROLES_BY_ID = {
-  'interact-club': ['Finance', 'Events', 'Social Media'],
+  'interact-club': [
+    'Treasurer',
+    'Secretary',
+    'Coordinators',
+    'Public Relations',
+    'Fundraising / events',
+    'Operators',
+  ],
   'unicef-ambassador': ['Event team', 'Graphics design team'],
 }
 

@@ -11,6 +11,8 @@ const TINT_HEX: Record<string, string> = {
   'spark-club': '#F97316', // orange (distinct from Operation Smile yellow)
   'interact-club': '#d946ef', // fuchsia (distinct from SPARK orange)
   'eco-committee': '#14b8a6', // teal (distinct from Duke green, fits eco/water theme)
+  'student-council': '#ff1493', // deep pink (distinct from School Show magenta)
+  'enterprise-club': '#6366f1', // indigo (distinct from UNICEF blue and MUN cyan)
 }
 
 const FALLBACK_PALETTE: string[] = [

@@ -15,7 +15,7 @@ const CREATOR_PHOTOS: Record<string, string> = {
 const TEAM = [
   { id: 'eve', name: 'Anya Towashiraporn', role: 'Operations & Data Lead', email: '79592@student.amnuaysilpa.ac.th', photo: CREATOR_PHOTOS.eve },
   { id: 'nanon', name: 'Nanon Jirapongsuwan', role: 'Tech & Lead developer', email: '79528@student.amnuaysilpa.ac.th', photo: CREATOR_PHOTOS.nanon },
-  { id: 'teeoff', name: 'Jittipon Tanpoonkiat', role: 'Communications and Outreach Lead', email: '79599@student.amnuaysilpa.ac.th', photo: CREATOR_PHOTOS.teeoff },
+  { id: 'teeoff', name: 'Jittipon Tanpoonkiat', role: 'Communications & Outreach Lead', email: '79599@student.amnuaysilpa.ac.th', photo: CREATOR_PHOTOS.teeoff },
 ]
 
 const METRICS = [

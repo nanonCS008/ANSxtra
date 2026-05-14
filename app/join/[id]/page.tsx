@@ -506,7 +506,9 @@ export default function JoinPage() {
             Apply to {club.name}
           </h1>
           <p className="text-white/60 mb-8">
-            Fill out the form below to submit your application.
+            {fields.length === 0
+              ? 'Confirm your details below and submit to register your interest with the club leaders.'
+              : 'Fill out the form below to submit your application.'}
           </p>
 
           {/* Not accepting notice */}

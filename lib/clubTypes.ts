@@ -8,6 +8,8 @@ const CLUB_TYPE_BY_ID: Record<string, string> = {
   'duke-of-edinburgh': 'Leadership',
   'unicef-ambassador': 'Charity',
   tedx: 'Academic',
+  'student-council': 'Leadership',
+  'enterprise-club': 'Enterprise',
 }
 
 const FALLBACK_TYPES = ['Other']

@@ -1,6 +1,5 @@
 'use client'
 
-import { cn } from '@/lib/utils/cn'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -20,31 +19,38 @@ export interface ImageLightboxLegacyProps {
   onClose: () => void
 }
 
-export function ImageLightbox(
-  props: ImageLightboxProps | ImageLightboxLegacyProps
-) {
-  // Normalize to gallery API
+function clamp(i: number, max: number) {
+  if (max < 0) return 0
+  return Math.min(Math.max(0, i), max)
+}
+
+export function ImageLightbox(props: ImageLightboxProps | ImageLightboxLegacyProps) {
   const isLegacy = 'src' in props
   const images = isLegacy ? [props.src] : props.images
-  const initialIndex = isLegacy ? 0 : props.currentIndex
   const onIndexChange = isLegacy ? undefined : props.onIndexChange
 
   const { alt, open, onClose } = props
 
-  const [index, setIndex] = useState(initialIndex)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Sync external index
-  useEffect(() => {
-    if (!isLegacy) {
-      setIndex((props as ImageLightboxProps).currentIndex)
-    }
-  }, [isLegacy, props])
-
   const count = images.length
+  const maxIdx = Math.max(0, count - 1)
+  const externalIndex = isLegacy ? 0 : props.currentIndex
+
+  const [index, setIndex] = useState(() => clamp(isLegacy ? 0 : externalIndex, maxIdx))
+
+  useEffect(() => {
+    if (isLegacy) return
+    setIndex(clamp(externalIndex, maxIdx))
+  }, [isLegacy, externalIndex, maxIdx, open])
+
+  useEffect(() => {
+    setIndex((i) => clamp(i, maxIdx))
+  }, [maxIdx])
 
   const goTo = useCallback(
     (i: number) => {
+      if (count === 0) return
       const next = ((i % count) + count) % count
       setIndex(next)
       onIndexChange?.(next)
@@ -65,7 +71,6 @@ export function ImageLightbox(
     document.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
 
-    // Focus trap
     containerRef.current?.focus()
 
     return () => {
@@ -73,6 +78,8 @@ export function ImageLightbox(
       document.body.style.overflow = ''
     }
   }, [open, onClose, prev, next])
+
+  const displayIndex = clamp(index, maxIdx)
 
   return (
     <AnimatePresence>
@@ -99,7 +106,7 @@ export function ImageLightbox(
           >
             <div className="flex items-center justify-center w-full h-full max-w-[96vw] max-h-[calc(100vh-var(--header-height,5rem)-1rem)]">
               <img
-                src={images[index]}
+                src={images[displayIndex]}
                 alt={alt}
                 className="max-w-full max-h-full w-auto h-auto object-cover object-center rounded-xl shadow-2xl"
                 draggable={false}
@@ -118,7 +125,6 @@ export function ImageLightbox(
               </svg>
             </button>
 
-            {/* Prev/Next navigation */}
             {count > 1 && (
               <>
                 <button
@@ -151,8 +157,8 @@ export function ImageLightbox(
             )}
 
             {count > 1 && (
-              <span className="absolute bottom-6 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white/80 text-sm font-medium">
-                {index + 1} / {count}
+              <span className="absolute bottom-6 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white/80 text-sm font-medium tabular-nums">
+                Photo {displayIndex + 1} / {count}
               </span>
             )}
           </motion.div>

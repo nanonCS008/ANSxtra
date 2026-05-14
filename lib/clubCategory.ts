@@ -17,6 +17,8 @@ const CATEGORY_BY_ID: Record<string, ClubCategory> = {
   'school-show': 'performing-arts',
   'duke-of-edinburgh': 'leadership',
   'interact-club': 'leadership',
+  'student-council': 'leadership',
+  'enterprise-club': 'other',
 }
 
 export function getClubCategory(clubId: string): ClubCategory {

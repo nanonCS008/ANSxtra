@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils/cn'
 import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface ClubCardProps {
   club: Club
@@ -20,7 +20,7 @@ interface ClubCardProps {
 }
 
 export function ClubCard({ club, compact, selectable, selected, onSelect, applied }: ClubCardProps) {
-  const cardRef = useRef<HTMLAnchorElement>(null)
+  const clubDetailHref = `/clubs/${club.id}`
   const [canHover, setCanHover] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const reducedMotion = useReducedMotion()
@@ -80,15 +80,26 @@ export function ClubCard({ club, compact, selectable, selected, onSelect, applie
   const cardSummary = getClubSummary(club)
 
   const isSchoolShow = club.id === 'school-show'
+  const isInteract = club.id === 'interact-club'
   const photoSection = (
     <div className="relative w-full flex-shrink-0 overflow-hidden aspect-[16/9] bg-brand-navy/20">
       <img
         src={club.image}
         alt=""
         className={cn(
-          'absolute inset-0 w-full h-full object-cover object-center',
+          'absolute inset-0 w-full h-full object-cover',
+          !isInteract && 'object-center',
           isSchoolShow && 'scale-125'
         )}
+        style={
+          isInteract
+            ? {
+                objectPosition: '50% 42%',
+                transform: 'scale(1.14) translateZ(0)',
+                transformOrigin: '50% 78%',
+              }
+            : undefined
+        }
         onError={(e) => {
           e.currentTarget.style.display = 'none'
         }}
@@ -126,14 +137,17 @@ export function ClubCard({ club, compact, selectable, selected, onSelect, applie
 
   const accentBarColor = `rgba(${tintRgb.r},${tintRgb.g},${tintRgb.b},0.35)`
 
-  const infoPanel = (
-    <div className="relative pl-4 pr-4 py-2.5 min-h-0 bg-brand-navy/90 border-t border-white/10 flex flex-col gap-2 flex-1 min-h-[5.5rem]">
+  /** Main copy + meta (inside detail link — must not wrap Apply `<button>`; nested button-in-anchor breaks navigation.) */
+  const infoTextBlock = (
+    <div className="relative pl-4 pr-4 pt-2.5 pb-2 min-h-0 flex flex-col gap-2 flex-1 min-h-[5.5rem] border-t border-white/10 bg-brand-navy/90">
       <div
         className="absolute left-0 top-0 bottom-0 w-[3px] pointer-events-none"
         style={{ backgroundColor: accentBarColor }}
         aria-hidden
       />
-      <h3 className="club-card-title font-extrabold text-white text-sm tracking-tight transition-colors duration-200 min-h-[1.25rem]">{club.displayName ?? club.name}</h3>
+      <h3 className="club-card-title font-extrabold text-white text-sm tracking-tight transition-colors duration-200 min-h-[1.25rem]">
+        {club.displayName ?? club.name}
+      </h3>
 
       {cardSummary && (
         <p className="text-white/80 text-xs leading-snug min-h-[2rem]">{cardSummary}</p>
@@ -146,61 +160,71 @@ export function ClubCard({ club, compact, selectable, selected, onSelect, applie
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white/10 text-white/90 border border-white/10">
           {clubType}
         </span>
+        {club.meetingDay?.trim() ? (
         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white/10 text-white/90 border border-white/10">
           {club.meetingDay}
         </span>
-      </div>
-      <div className="flex items-center justify-between mt-auto pt-1 gap-2">
-        <span
-          className="inline-flex items-center gap-0.5 text-brand-pink/85 group-hover:text-brand-pink text-[11px] font-semibold transition-colors"
-          aria-hidden
-        >
-          View details
-          <motion.span
-            className="inline-block"
-            animate={isHovered && canHover ? { x: 2 } : { x: 0 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-          >
-            →
-          </motion.span>
-        </span>
-        {club.id === 'school-show' ? (
+        ) : null}
+        {(club.cardExtraTags ?? []).map((tag) => (
           <span
-            className={cn(
-              'inline-flex min-h-[32px] items-center justify-center rounded-md',
-              'px-3 text-[11px] font-semibold',
-              'bg-white/[0.06] text-white/55 border border-white/10'
-            )}
+            key={tag}
+            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-white/10 text-white/90 border border-white/10"
           >
-            External sign-up
+            {tag}
           </span>
-        ) : (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              if (applied) return
-              router.push(`/join/${club.id}`)
-            }}
-            className={cn(
-              'inline-flex min-h-[32px] items-center justify-center rounded-md',
-              'px-3 text-[11px] font-semibold',
-              applied
-                ? 'bg-white/[0.06] text-white/50 border border-white/10 cursor-not-allowed'
-                : 'bg-brand-pink/90 text-white shadow-sm hover:bg-brand-pink transition-colors'
-            )}
-            aria-label={`Apply to ${club.displayName ?? club.name}`}
-            disabled={!!applied}
-          >
-            {applied ? 'Applied' : 'Apply'}
-          </button>
-        )}
+        ))}
       </div>
     </div>
   )
 
-  // No "Read more" — summary only; full description on club page
+  const infoActionsRow = (
+    <div className="relative flex items-center justify-between gap-2 pl-4 pr-4 pb-2.5 pt-1 bg-brand-navy/90">
+      <Link
+        href={clubDetailHref}
+        className="inline-flex items-center gap-0.5 text-brand-pink/85 group-hover:text-brand-pink text-[11px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-deep rounded"
+      >
+        View details
+        <motion.span
+          className="inline-block"
+          animate={isHovered && canHover ? { x: 2 } : { x: 0 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+        >
+          →
+        </motion.span>
+      </Link>
+      {club.id === 'school-show' ? (
+        <span
+          className={cn(
+            'inline-flex min-h-[32px] items-center justify-center rounded-md',
+            'px-3 text-[11px] font-semibold',
+            'bg-white/[0.06] text-white/55 border border-white/10'
+          )}
+        >
+          External sign-up
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            if (applied) return
+            router.push(`/join/${club.id}`)
+          }}
+          className={cn(
+            'inline-flex min-h-[32px] items-center justify-center rounded-md',
+            'px-3 text-[11px] font-semibold',
+            applied
+              ? 'bg-white/[0.06] text-white/50 border border-white/10 cursor-not-allowed'
+              : 'bg-brand-pink/90 text-white shadow-sm hover:bg-brand-pink transition-colors'
+          )}
+          aria-label={`Apply to ${club.displayName ?? club.name}`}
+          disabled={!!applied}
+        >
+          {applied ? 'Applied' : 'Apply'}
+        </button>
+      )}
+    </div>
+  )
+
   const wrapperClass = cn(
     'group relative w-full rounded-2xl border border-white/10 overflow-hidden flex flex-col',
     'bg-brand-navy/40 backdrop-blur-sm shadow-card',
@@ -252,19 +276,17 @@ export function ClubCard({ club, compact, selectable, selected, onSelect, applie
             }
           >
             {photoSection}
-            {infoPanel}
+            {infoTextBlock}
+            {infoActionsRow}
           </motion.div>
         </div>
       ) : (
-        <Link
-          ref={cardRef}
-          href={`/clubs/${club.id}`}
+        <div
           className={cn(wrapperClass, 'h-full flex flex-col')}
           style={{ '--card-hue': hueRgbString } as React.CSSProperties}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
           onMouseEnter={handleMouseEnter}
-          aria-label={`View ${club.displayName ?? club.name}`}
         >
           <div
             className="absolute inset-0 pointer-events-none z-10 rounded-2xl overflow-hidden"
@@ -284,7 +306,7 @@ export function ClubCard({ club, compact, selectable, selected, onSelect, applie
             />
           </div>
           <motion.div
-            className="flex flex-col h-full relative"
+            className="flex flex-col h-full relative flex-1 min-h-0"
             animate={canHover && !reducedMotion ? { y: isHovered ? -6 : 0 } : { y: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             style={
@@ -297,10 +319,17 @@ export function ClubCard({ club, compact, selectable, selected, onSelect, applie
                 : undefined
             }
           >
-            {photoSection}
-            {infoPanel}
+            <Link
+              href={clubDetailHref}
+              aria-label={`View ${club.displayName ?? club.name}`}
+              className="flex flex-col flex-1 min-h-0 text-left no-underline text-inherit rounded-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-pink/50 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-deep"
+            >
+              {photoSection}
+              {infoTextBlock}
+            </Link>
+            {infoActionsRow}
           </motion.div>
-        </Link>
+        </div>
       )}
     </>
   )

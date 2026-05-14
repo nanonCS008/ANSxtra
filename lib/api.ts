@@ -71,6 +71,8 @@ export const BACKEND_CLUB_ID_MAP: Record<string, string> = {
   'duke-of-edinburgh': 'duke_of_edinburgh',
   'unicef-ambassador': 'unicef_ambassador',
   tedx: 'tedx',
+  'student-council': 'student_council',
+  'enterprise-club': 'enterprise_club',
 }
 
 const SLUG_BY_BACKEND_ID: Record<string, string> = Object.fromEntries(
