@@ -20,6 +20,7 @@ import {
 } from '@/lib/clubCategory'
 import { getClubType } from '@/lib/clubTypes'
 import { getClubById } from '@/lib/data'
+import { isExternalSignupClub } from '@/lib/externalSignupClubs'
 import { truncateAtSentence } from '@/lib/textUtils'
 import { cn } from '@/lib/utils/cn'
 import {
@@ -777,8 +778,11 @@ export default function ClubDetailPage() {
           <Container className="py-3 md:py-4">
             <div className="mx-auto max-w-[1150px]">
             <h3 className="text-sm font-bold text-white mb-2 tracking-tight">How to Join</h3>
-            {club.id === 'school-show' ? (
-              <p className="text-white/70 text-sm">Auditions and applications are run externally. Please check with the club or school for how to apply.</p>
+            {isExternalSignupClub(club.id) ? (
+              <p className="text-white/70 text-sm">
+                Student Council recruitment is run outside ANSxtra. Please check with your Form Tutor, House Leader,
+                or the Student Council for how to get involved.
+              </p>
             ) : club.accepting ? (
               <>
                 <p className="text-white/70 text-sm mb-3">Click Apply to submit an application.</p>
@@ -930,8 +934,11 @@ export default function ClubDetailPage() {
                 </div>
                 <div className="rounded-xl p-4 border border-white/10 bg-white/[0.04]">
                   <h3 className="text-sm font-bold text-white mb-2 tracking-tight">How to Join</h3>
-                  {club.id === 'school-show' ? (
-                    <p className="text-white/70 text-sm">Auditions and applications are run externally. Please check with the club or school for how to apply.</p>
+                  {isExternalSignupClub(club.id) ? (
+                    <p className="text-white/70 text-sm">
+                      Student Council recruitment is run outside ANSxtra. Please check with your Form Tutor, House
+                      Leader, or the Student Council for how to get involved.
+                    </p>
                   ) : club.accepting ? (
                     <>
                     <p className="text-white/70 text-sm mb-3">Click Apply to submit an application.</p>
@@ -994,16 +1001,17 @@ export default function ClubDetailPage() {
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold break-words">{displayName}</p>
             <p className="text-white/60 text-sm">
-              {club.id === 'school-show'
+              {isExternalSignupClub(club.id)
                 ? 'External sign-up'
                 : club.accepting
                   ? 'Open for registration'
                   : 'Not accepting'}
             </p>
           </div>
-          {club.id === 'school-show' ? (
+          {isExternalSignupClub(club.id) ? (
             <span className="text-white/60 text-sm">
-              Auditions and applications are run externally. Please check with the club or school for how to apply. Auditions are held later, please ask Mr McGhee for further details.
+              Recruitment is run outside this website. Please check with your Form Tutor, House Leader, or the
+              Student Council for how to get involved.
             </span>
           ) : alreadyApplied ? (
             <Button disabled size="lg">Applied</Button>

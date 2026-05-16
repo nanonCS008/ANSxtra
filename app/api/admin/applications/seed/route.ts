@@ -15,7 +15,9 @@ function getAdminClient() {
 }
 
 function pickClubIds(): string[] {
-  const ids = (clubs as Array<{ id: string }>).map((c) => c.id).filter((id) => id !== 'blank' && id !== 'school-show')
+  const ids = (clubs as Array<{ id: string }>)
+    .map((c) => c.id)
+    .filter((id) => id !== 'blank' && id !== 'student-council')
   // Keep this small but varied.
   return ids.slice(0, 8)
 }

@@ -9,6 +9,7 @@ import { RadioGroup } from '@/components/ui/RadioGroup'
 import { getApplyErrorMessage, submitApplication } from '@/lib/api'
 import { saveApplication, type ClubApplicationPayload } from '@/lib/applications'
 import { getClubFormFields } from '@/lib/clubFormFields'
+import { isExternalSignupClub } from '@/lib/externalSignupClubs'
 import { isValidStoredDobIso } from '@/lib/dmyDate'
 import { TEDX_ARCHIVE_ITEMS } from '@/components/clubs/TEDxLivestreamArchive'
 import { DmyDateField } from '@/components/join/DmyDateField'
@@ -60,12 +61,10 @@ type JoinFormCopy = {
 }
 
 const JOIN_FORM_COPY: Partial<Record<string, JoinFormCopy>> = {
-  'student-council': {
-    questionsIntro:
-      'Please answer the following questions. These are long-form questions — write your answers in full paragraphs.',
-    questionsNote:
-      'There is no minimum word count per question, but the depth of your answers will be taken into consideration when choosing candidates.',
-    textareaPlaceholder: 'Write your answer in full sentences and paragraphs…',
+  'school-show': {
+    pageDescription:
+      'Apply for the School Show stage crew. This form may gain more questions soon — if you’re unsure, check with the production team before submitting.',
+    questionsIntro: 'Stage crew application',
   },
   mun: {
     pageDescription:
@@ -170,9 +169,7 @@ export default function JoinPage() {
   const fields = useMemo(() => getClubFields(club.id), [club.id])
   const formCopy = JOIN_FORM_COPY[club.id]
   const state = useMemo(() => ({ responses }), [responses])
-  const defaultTextareaPlaceholder =
-    formCopy?.textareaPlaceholder ??
-    (club.id === 'student-council' ? 'Write your answer in full sentences and paragraphs…' : 'Your answer…')
+  const defaultTextareaPlaceholder = formCopy?.textareaPlaceholder ?? 'Your answer…'
 
   const fieldRefs = useRef<Record<string, HTMLElement | null>>({})
 
@@ -275,6 +272,23 @@ export default function JoinPage() {
               <Button>Browse Clubs</Button>
             </Link>
           </div>
+        </Container>
+      </div>
+    )
+  }
+
+  if (isExternalSignupClub(club.id)) {
+    return (
+      <div className="min-h-screen bg-brand-deep pt-24 pb-16">
+        <Container size="narrow">
+          <h1 className="text-2xl font-bold text-white mb-3">External sign-up</h1>
+          <p className="text-white/70 text-sm leading-relaxed mb-6">
+            Student Council does not use this website for applications. Please check with your Form Tutor, House
+            Leader, or the Student Council for how to get involved.
+          </p>
+          <Link href={`/clubs/${club.id}`}>
+            <Button>Back to {club.displayName ?? club.name}</Button>
+          </Link>
         </Container>
       </div>
     )

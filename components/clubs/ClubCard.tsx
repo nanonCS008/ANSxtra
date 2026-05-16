@@ -4,6 +4,7 @@ import { Club } from '@/lib/types/club'
 import { getClubSummary } from '@/lib/clubSummary'
 import { getClubTintRgb, getClubTintGradientCss, getClubTintHex } from '@/lib/clubHues'
 import { getClubType } from '@/lib/clubTypes'
+import { isExternalSignupClub } from '@/lib/externalSignupClubs'
 import { cn } from '@/lib/utils/cn'
 import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion'
 import Link from 'next/link'
@@ -193,7 +194,7 @@ export function ClubCard({ club, compact, selectable, selected, onSelect, applie
           →
         </motion.span>
       </Link>
-      {club.id === 'school-show' ? (
+      {isExternalSignupClub(club.id) ? (
         <span
           className={cn(
             'inline-flex min-h-[32px] items-center justify-center rounded-md',

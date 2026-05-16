@@ -1,6 +1,7 @@
 'use client'
 
 import { Club } from '@/lib/types/club'
+import { isExternalSignupClub } from '@/lib/externalSignupClubs'
 import { getClubTintRgb, getClubTintGradientCss } from '@/lib/clubHues'
 import { cn } from '@/lib/utils/cn'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -112,12 +113,18 @@ export function SpotlightCarousel({
           <span
             className={cn(
               'inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold',
-              club.accepting
-                ? 'bg-emerald-500/95 text-white border border-emerald-400/50'
-                : 'bg-white/15 text-white/90 border border-white/20'
+              isExternalSignupClub(club.id)
+                ? 'bg-white/15 text-white/90 border border-white/20'
+                : club.accepting
+                  ? 'bg-emerald-500/95 text-white border border-emerald-400/50'
+                  : 'bg-white/15 text-white/90 border border-white/20'
             )}
           >
-            {club.accepting ? 'Now Accepting Members' : 'Not accepting'}
+            {isExternalSignupClub(club.id)
+              ? 'External sign-up'
+              : club.accepting
+                ? 'Now Accepting Members'
+                : 'Not accepting'}
           </span>
         </div>
 

@@ -6,6 +6,7 @@ import clubs from '@/data/clubs.json'
 import crypto from 'crypto'
 import { notifyApplicationCountMilestones } from '@/lib/applicationAdminEmails'
 import { sendStudentApplicationReceivedEmail } from '@/lib/email/sendApplicationReceivedEmail'
+import { isExternalSignupClub } from '@/lib/externalSignupClubs'
 
 function getStudentIdFromEmail(email: string): string | null {
   const normalized = email.trim().toLowerCase()
@@ -244,7 +245,7 @@ export async function POST(request: NextRequest) {
     }
 
     for (const clubId of clubIds) {
-      if (clubId === 'school-show') {
+      if (isExternalSignupClub(clubId)) {
         insertErrors.push({ clubId, error: { code: 'APPLICATIONS_DISABLED' } })
         continue
       }
@@ -301,7 +302,11 @@ export async function POST(request: NextRequest) {
       }
       if (first?.code === 'APPLICATIONS_DISABLED') {
         return NextResponse.json(
-          { code: 'APPLICATIONS_DISABLED', message: 'Auditions and applications are run externally. Please check with the club or school for how to apply. Auditions are held later, please ask Mr McGhee for further details.' },
+          {
+            code: 'APPLICATIONS_DISABLED',
+            message:
+              'Applications for this club are run outside ANSxtra. Please check with the club or school for how to sign up.',
+          },
           { status: 403 }
         )
       }

@@ -138,6 +138,8 @@ export const APPLY_ERROR_MESSAGES: Record<string, string> = {
   YEAR_GROUP_NOT_ELIGIBLE: 'Your year group is not allowed.',
   YEAR_NOT_ALLOWED: 'Your year group is not allowed.',
   ALREADY_APPLIED: 'You already applied.',
+  APPLICATIONS_DISABLED:
+    'Applications for this club are run outside ANSxtra. Please check with the club or school for how to sign up.',
   INVALID_RESPONSES: 'Please check your answers and fill in all required fields.',
 }
 

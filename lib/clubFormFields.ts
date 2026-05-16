@@ -31,7 +31,14 @@ const FIELDS_BY_CLUB: Record<string, FieldDef[]> = {
     { key: 'why_join', kind: 'textarea', label: 'Why do you want to join Operation Smile?', required: true, minLength: 5 },
   ],
   'school-show': [
-    { key: 'why_join', kind: 'textarea', label: 'Why do you want to join the School Show?', required: true, minLength: 5 },
+    {
+      key: 'stage_crew_interest',
+      kind: 'textarea',
+      label: 'Why would you like to join the School Show stage crew?',
+      required: true,
+      minLength: 5,
+      placeholder: 'Write your answer… (more questions may be added to this form soon.)',
+    },
   ],
   'spark-club': [
     { key: 'old_new_member', kind: 'radio', label: 'Old member / new member', required: true, options: ['Old member', 'New member'] },
@@ -100,36 +107,7 @@ const FIELDS_BY_CLUB: Record<string, FieldDef[]> = {
       options: ['Event team', 'Graphics design team'],
     },
   ],
-  'student-council': [
-    {
-      key: 'why_join',
-      kind: 'textarea',
-      label: 'Why do you want to join the Student Council?',
-      required: true,
-      minLength: 5,
-    },
-    {
-      key: 'qualities_fit',
-      kind: 'textarea',
-      label: 'What qualities do you have that would make you a good Student Council member?',
-      required: true,
-      minLength: 5,
-    },
-    {
-      key: 'leadership_teamwork_example',
-      kind: 'textarea',
-      label: 'Describe a time when you demonstrated leadership or teamwork:',
-      required: true,
-      minLength: 5,
-    },
-    {
-      key: 'school_improvement_ideas',
-      kind: 'textarea',
-      label: 'What ideas do you have for improving our school?',
-      required: true,
-      minLength: 5,
-    },
-  ],
+  'student-council': [],
   'enterprise-club': [],
   tedx: [
     {
