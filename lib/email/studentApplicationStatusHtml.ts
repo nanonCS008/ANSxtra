@@ -1,5 +1,3 @@
-import { escapeAttrUrl, getEmailBrandHeaderBlockHtml, getPublicSiteUrl } from '@/lib/resendConfig';
-
 const FONT =
   "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 const BRAND_PINK = '#D946EF';
@@ -66,12 +64,6 @@ function meetingScheduleBlock(p: StudentApplicationStatusEmailParams): string {
 export function buildStudentApplicationStatusEmailHtml(p: StudentApplicationStatusEmailParams): string {
   const statusLabel = p.status === 'approved' ? 'Approved' : 'Rejected';
   const accent = p.status === 'approved' ? BRAND_PINK : '#64748b';
-  const headerHtml = getEmailBrandHeaderBlockHtml();
-  const site = getPublicSiteUrl();
-  const myAppsHref = site ? `${site}/my-applications` : null;
-  const myAppsLink = myAppsHref
-    ? `<a href="${escapeAttrUrl(myAppsHref)}" style="color:${BRAND_PINK};font-weight:700;text-decoration:none;">My Applications</a>`
-    : '<strong>My Applications</strong>';
 
   const welcome = p.studentFullName
     ? `<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:${SIDEBAR};">Hi <strong>${escapeHtml(p.studentFullName)}</strong>,</p>`
@@ -79,7 +71,7 @@ export function buildStudentApplicationStatusEmailHtml(p: StudentApplicationStat
 
   const statusLine =
     p.status === 'approved'
-      ? `<p style="margin:0;font-size:15px;line-height:1.65;color:${SIDEBAR};">Great news — your application was <strong style="color:#059669;">approved</strong>. Welcome to <strong>${escapeHtml(p.clubName)}</strong>!</p>`
+      ? `<p style="margin:0;font-size:15px;line-height:1.65;color:${SIDEBAR};">Congratulations — your application was <strong style="color:#059669;">approved</strong>. Welcome to <strong>${escapeHtml(p.clubName)}</strong>!</p>`
       : `<p style="margin:0;font-size:15px;line-height:1.65;color:${SIDEBAR};">Your application was <strong>not approved</strong> at this time. Thank you for your interest in <strong>${escapeHtml(p.clubName)}</strong>.</p>`;
 
   const notesBlock = p.notes
@@ -99,18 +91,6 @@ export function buildStudentApplicationStatusEmailHtml(p: StudentApplicationStat
 
   const schedule = meetingScheduleBlock(p);
 
-  const footerHint = `
-    <div style="margin-top:26px;padding-top:20px;border-top:1px solid #e2e8f0;">
-      <p style="margin:0;font-size:13px;line-height:1.6;color:#64748b;">
-        View your applications any time on ANSxtra: ${myAppsLink}.
-      </p>
-      ${
-        site
-          ? `<p style="margin:14px 0 0;font-size:12px;color:#94a3b8;">If the button doesn’t work, paste this link in your browser:<br /><span style="word-break:break-all;color:#64748b;">${escapeHtml(myAppsHref!)}</span></p>`
-          : ''
-      }
-    </div>`;
-
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -128,8 +108,7 @@ export function buildStudentApplicationStatusEmailHtml(p: StudentApplicationStat
           </tr>
           <tr>
             <td style="padding:0 8px 8px;">
-              ${headerHtml}
-              <div style="padding:8px 22px 28px;font-family:${FONT};">
+              <div style="padding:20px 22px 28px;font-family:${FONT};">
                 <h1 style="margin:0 0 6px;font-size:20px;font-weight:800;color:${SIDEBAR};letter-spacing:-0.02em;line-height:1.3;">
                   ${escapeHtml(p.clubName)}
                 </h1>
@@ -141,7 +120,6 @@ export function buildStudentApplicationStatusEmailHtml(p: StudentApplicationStat
                 ${leaderMsg}
                 ${schedule}
                 ${notesBlock}
-                ${footerHint}
               </div>
             </td>
           </tr>

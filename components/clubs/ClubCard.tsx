@@ -3,7 +3,6 @@
 import { Club } from '@/lib/types/club'
 import { getClubSummary } from '@/lib/clubSummary'
 import { getClubTintRgb, getClubTintGradientCss, getClubTintHex } from '@/lib/clubHues'
-import { canSubmitClubApplication } from '@/lib/applicationDeadline'
 import { getClubType } from '@/lib/clubTypes'
 import { cn } from '@/lib/utils/cn'
 import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion'
@@ -26,7 +25,6 @@ export function ClubCard({ club, compact, selectable, selected, onSelect, applie
   const [isHovered, setIsHovered] = useState(false)
   const reducedMotion = useReducedMotion()
   const router = useRouter()
-  const canApply = canSubmitClubApplication(club.accepting)
 
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
@@ -78,6 +76,7 @@ export function ClubCard({ club, compact, selectable, selected, onSelect, applie
   const tintHex = getClubTintHex(club.id)
   const tintGradientCss = getClubTintGradientCss(tintRgb, { spotlight: false })
   const clubType = getClubType(club.id)
+  const canApply = club.accepting
 
   const cardSummary = getClubSummary(club)
 

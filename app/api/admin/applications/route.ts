@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { createClient } from '@supabase/supabase-js';
 import { authOptions } from '@/lib/auth';
-import { getAdminEmails, isAdminEmail } from '@/lib/admin';
+import { isAdminEmail } from '@/lib/admin';
 import clubs from '@/data/clubs.json';
 import { formatResendError, getResendClient, getResendFrom } from '@/lib/resendConfig';
 import { buildStudentApplicationStatusEmailHtml } from '@/lib/email/studentApplicationStatusHtml';
@@ -41,12 +41,6 @@ type SendNotificationResult = {
   failures: string[];
   missingStudentEmail: boolean;
 };
-
-function shouldSendAdminCopyEmails(): boolean {
-  const raw = process.env.SEND_ADMIN_COPY_EMAILS?.trim().toLowerCase();
-  if (!raw) return false;
-  return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
-}
 
 async function sendStatusNotifications(params: {
   userId: string;
@@ -89,7 +83,6 @@ async function sendStatusNotifications(params: {
   if (!authEmail && storedEmail) {
     console.warn('Using application row email for notification (Auth email missing):', params.userId);
   }
-  const adminRecipients = shouldSendAdminCopyEmails() ? getAdminEmails() : [];
 
   const studentEmailHtml = buildStudentApplicationStatusEmailHtml({
     clubName,
@@ -121,27 +114,6 @@ async function sendStatusNotifications(params: {
     const msg = `No student email (Auth + application row empty) for user_id ${params.userId}`;
     console.warn(msg);
     failures.push(msg);
-  }
-
-  if (adminRecipients.length) {
-    const { error } = await resend.emails.send({
-      from,
-      to: adminRecipients,
-      subject: `${clubName} — Application ${statusLabel}${nicknameSuffix} (admin copy)`,
-      html: `
-          <h2>Application Review Completed</h2>
-          <p><strong>Club:</strong> ${clubName}</p>
-          <p><strong>Status:</strong> ${statusLabel}</p>
-          <p><strong>User ID:</strong> ${params.userId}</p>
-          <p><strong>Reviewed by:</strong> ${params.reviewedByEmail}</p>
-          ${params.notes ? `<p><strong>Notes:</strong> ${escapeHtml(params.notes)}</p>` : ''}
-        `,
-    });
-    if (error) {
-      const detail = formatResendError(error);
-      console.error('Resend admin email failed:', detail);
-      failures.push(`Admin copy: ${detail}`);
-    }
   }
 
   return {

@@ -178,6 +178,54 @@ function orderedResponseKeys(o: Record<string, unknown>, clubId: string): string
   return [...orderedPresent, ...extraKeys]
 }
 
+function formatResponseForStudentEmail(val: unknown, field?: FieldDef): string {
+  if (val == null || val === '') return '—'
+  if (field?.kind === 'checkbox') {
+    const s = String(val).toLowerCase()
+    const yes = val === true || s === 'true' || s === '1' || s === 'yes'
+    return yes ? 'Yes' : 'No'
+  }
+  if (typeof val === 'string') {
+    const t = val.trim()
+    if (t.startsWith('[') && t.endsWith(']')) {
+      try {
+        const p = JSON.parse(t) as unknown
+        if (Array.isArray(p)) return p.map((x) => String(x)).join(', ')
+      } catch {
+        /* fall through */
+      }
+    }
+  }
+  if (Array.isArray(val)) return val.map((x) => String(x)).join(', ')
+  return formatResponseValue(val)
+}
+
+export type ApplicationResponseDisplayRow = {
+  label: string
+  value: string
+}
+
+/**
+ * Question/answer pairs for student-facing confirmation emails, using the same labels as the join form.
+ */
+export function getApplicationResponseDisplayRows(
+  responses: unknown,
+  clubId: string
+): ApplicationResponseDisplayRow[] {
+  const o = parseResponsesObject(responses)
+  if (!o) return []
+
+  const fields = getClubFormFields(clubId)
+  const labelByKey = new Map(fields.map((f) => [f.key, f.label]))
+  const fieldByKey = new Map(fields.map((f) => [f.key, f]))
+  const keys = orderedResponseKeys(o, clubId)
+
+  return keys.map((key) => ({
+    label: labelByKey.get(key) ?? humanizeResponseKey(key),
+    value: formatResponseForStudentEmail(o[key], fieldByKey.get(key)),
+  }))
+}
+
 /** Question columns for a single-club CSV (header = full join-form label). */
 export function getQuestionColumnsForClub(clubId: string): { key: string; label: string }[] {
   return getClubFormFields(clubId).map((f) => ({ key: f.key, label: f.label }))

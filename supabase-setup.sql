@@ -90,3 +90,11 @@ CREATE POLICY "Users can view their own applications" ON applications
 
 -- If `applications_v2` already exists from an older setup, add nickname / prename:
 -- ALTER TABLE public.applications_v2 ADD COLUMN IF NOT EXISTS prename text;
+
+-- ============================================================
+-- Admin digest log (suppress duplicate end-of-period summary emails)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS application_admin_digest_log (
+  digest_key TEXT PRIMARY KEY,
+  sent_at TIMESTAMPTZ DEFAULT NOW()
+);

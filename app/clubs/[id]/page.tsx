@@ -19,11 +19,6 @@ import {
   getCategoryLayout,
 } from '@/lib/clubCategory'
 import { getClubType } from '@/lib/clubTypes'
-import {
-  APPLICATIONS_CLOSED_MESSAGE,
-  areClubApplicationsOpen,
-  canSubmitClubApplication,
-} from '@/lib/applicationDeadline'
 import { getClubById } from '@/lib/data'
 import { truncateAtSentence } from '@/lib/textUtils'
 import { cn } from '@/lib/utils/cn'
@@ -411,9 +406,6 @@ export default function ClubDetailPage() {
 
   if (!club) notFound()
 
-  const applicationsOpen = areClubApplicationsOpen()
-  const registrationOpen = canSubmitClubApplication(club.accepting)
-
   return (
     <div
       className={cn(
@@ -500,7 +492,7 @@ export default function ClubDetailPage() {
                   <span className="inline-flex items-center px-2.5 py-1 rounded-md text-white/85 text-xs border" style={{ borderColor: `${effectiveTintHex}50` }}>
                     {clubType}
                   </span>
-                  {registrationOpen && (
+                  {club.accepting && (
                     <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/25 text-emerald-400 border border-emerald-500/40">
                       Now Accepting Members
                     </span>
@@ -573,7 +565,7 @@ export default function ClubDetailPage() {
                 <span className={cn('inline-flex items-center rounded-md border text-white/85', isDuke ? 'px-2.5 py-1 text-xs' : 'px-2.5 py-1 text-xs')} style={{ borderColor: `${effectiveTintHex}50` }}>
                   {clubType}
                 </span>
-                {registrationOpen && (
+                {club.accepting && (
                   <span className={cn('inline-flex items-center rounded-full font-semibold bg-emerald-500/25 text-emerald-400 border border-emerald-500/40', isDuke ? 'px-3 py-1 text-xs' : 'px-3 py-1 text-xs')}>
                     Now Accepting Members
                   </span>
@@ -787,7 +779,7 @@ export default function ClubDetailPage() {
             <h3 className="text-sm font-bold text-white mb-2 tracking-tight">How to Join</h3>
             {club.id === 'school-show' ? (
               <p className="text-white/70 text-sm">Auditions and applications are run externally. Please check with the club or school for how to apply.</p>
-            ) : registrationOpen ? (
+            ) : club.accepting ? (
               <>
                 <p className="text-white/70 text-sm mb-3">Click Apply to submit an application.</p>
                 <JoinButton
@@ -798,8 +790,6 @@ export default function ClubDetailPage() {
                   label={alreadyApplied ? 'Applied' : 'Apply'}
                 />
               </>
-            ) : !applicationsOpen ? (
-              <p className="text-white/60 text-sm">{APPLICATIONS_CLOSED_MESSAGE}</p>
             ) : (
               <p className="text-white/60 text-sm">Not currently accepting. Check back later or contact the club.</p>
             )}
@@ -942,7 +932,7 @@ export default function ClubDetailPage() {
                   <h3 className="text-sm font-bold text-white mb-2 tracking-tight">How to Join</h3>
                   {club.id === 'school-show' ? (
                     <p className="text-white/70 text-sm">Auditions and applications are run externally. Please check with the club or school for how to apply.</p>
-                  ) : registrationOpen ? (
+                  ) : club.accepting ? (
                     <>
                     <p className="text-white/70 text-sm mb-3">Click Apply to submit an application.</p>
                       <JoinButton
@@ -953,8 +943,6 @@ export default function ClubDetailPage() {
                         label={alreadyApplied ? 'Applied' : 'Apply'}
                       />
                     </>
-                  ) : !applicationsOpen ? (
-                    <p className="text-white/60 text-sm">{APPLICATIONS_CLOSED_MESSAGE}</p>
                   ) : (
                     <p className="text-white/60 text-sm">Not currently accepting. Check back later or contact the club.</p>
                   )}
@@ -1008,11 +996,9 @@ export default function ClubDetailPage() {
             <p className="text-white/60 text-sm">
               {club.id === 'school-show'
                 ? 'External sign-up'
-                : registrationOpen
+                : club.accepting
                   ? 'Open for registration'
-                  : !applicationsOpen
-                    ? 'Applications closed'
-                    : 'Not accepting'}
+                  : 'Not accepting'}
             </p>
           </div>
           {club.id === 'school-show' ? (
@@ -1021,7 +1007,7 @@ export default function ClubDetailPage() {
             </span>
           ) : alreadyApplied ? (
             <Button disabled size="lg">Applied</Button>
-          ) : registrationOpen ? (
+          ) : club.accepting ? (
             <Button
               href={`/join/${club.id}`}
               size="lg"
@@ -1033,9 +1019,7 @@ export default function ClubDetailPage() {
               Apply
             </Button>
           ) : (
-            <Button disabled size="lg">
-              {!applicationsOpen ? 'Applications closed' : 'Closed'}
-            </Button>
+            <Button disabled size="lg">Closed</Button>
           )}
         </div>
       </div>

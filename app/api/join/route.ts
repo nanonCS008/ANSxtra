@@ -4,9 +4,8 @@ import { authOptions } from '@/lib/auth'
 import { createClient } from '@supabase/supabase-js'
 import clubs from '@/data/clubs.json'
 import crypto from 'crypto'
-import { formatResendError, getResendClient, getResendFrom } from '@/lib/resendConfig'
-import { getAdminEmails } from '@/lib/admin'
-import { areClubApplicationsOpen, APPLICATIONS_CLOSED_MESSAGE } from '@/lib/applicationDeadline'
+import { notifyApplicationCountMilestones } from '@/lib/applicationAdminEmails'
+import { sendStudentApplicationReceivedEmail } from '@/lib/email/sendApplicationReceivedEmail'
 
 function getStudentIdFromEmail(email: string): string | null {
   const normalized = email.trim().toLowerCase()
@@ -42,13 +41,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { code: 'UNAUTHORIZED', error: 'Unauthorized' },
         { status: 401 }
-      )
-    }
-
-    if (!areClubApplicationsOpen()) {
-      return NextResponse.json(
-        { code: 'APPLICATIONS_CLOSED', error: APPLICATIONS_CLOSED_MESSAGE },
-        { status: 403 }
       )
     }
 
@@ -226,7 +218,6 @@ export async function POST(request: NextRequest) {
     }
 
     const applications = []
-    const appliedClubs = []
     const insertErrors: Array<{ clubId: string; error: unknown }> = []
 
     const responses = (body?.responses && typeof body.responses === 'object')
@@ -242,6 +233,14 @@ export async function POST(request: NextRequest) {
         clubIds,
         hasResponses: !!responses && Object.keys(responses as any).length > 0,
       })
+    }
+
+    const { count: countBeforeRaw, error: countBeforeError } = await supabase
+      .from('applications_v2')
+      .select('*', { count: 'exact', head: true })
+    const countBefore = typeof countBeforeRaw === 'number' ? countBeforeRaw : 0
+    if (countBeforeError) {
+      console.warn('POST /api/join: applications_v2 count failed (milestones skip):', countBeforeError)
     }
 
     for (const clubId of clubIds) {
@@ -290,10 +289,6 @@ export async function POST(request: NextRequest) {
       }
 
       applications.push(data)
-      const club = clubs.find(c => c.id === clubId)
-      if (club) {
-        appliedClubs.push(club.name)
-      }
     }
 
     if (applications.length === 0) {
@@ -322,32 +317,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Notify staff (Resend returns { error } instead of throwing on API failures)
-    if (appliedClubs.length > 0) {
-      const resend = getResendClient()
-      if (!resend) {
-        console.warn('RESEND_API_KEY is not set; skipping new-application staff email.')
-      } else {
-        const recipients = getAdminEmails()
-        const to = recipients.length ? recipients : ['chinthakag@amnuaysilpa.ac.th']
-        const { error } = await resend.emails.send({
-          from: getResendFrom(),
-          to,
-          subject: `New Club Application: ${session.user.name}`,
-          html: `
-            <h2>New Club Application Received</h2>
-            <p><strong>Student Name:</strong> ${session.user.name}</p>
-            <p><strong>Student Email:</strong> ${session.user.email}</p>
-            <p><strong>Applied Clubs:</strong></p>
-            <ul>
-              ${appliedClubs.map((club) => `<li>${club}</li>`).join('')}
-            </ul>
-            <p>Please review the application in the admin panel.</p>
-          `,
+    if (applications.length > 0) {
+      const { count: countAfterRaw, error: countAfterError } = await supabase
+        .from('applications_v2')
+        .select('*', { count: 'exact', head: true })
+      const countAfter =
+        typeof countAfterRaw === 'number' ? countAfterRaw : countBefore + applications.length
+      if (countAfterError) {
+        console.warn('POST /api/join: post-insert count failed; milestone check may be off:', countAfterError)
+      }
+      notifyApplicationCountMilestones(supabase, countBefore, countAfter).catch((err) => {
+        console.error('Milestone admin email error:', err)
+      })
+
+      try {
+        const sent = await sendStudentApplicationReceivedEmail({
+          to: email,
+          studentFirstName: studentFirstName?.trim() || null,
+          applicationRows: applications,
+          responses,
         })
-        if (error) {
-          console.error('Resend new-application email failed:', formatResendError(error))
+        if (!sent.ok) {
+          console.warn('Student application confirmation email failed:', sent.error)
         }
+      } catch (confirmErr) {
+        console.error('Student application confirmation email error:', confirmErr)
       }
     }
 

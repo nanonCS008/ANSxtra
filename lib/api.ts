@@ -1,6 +1,5 @@
 
 import type { ClubApplicationPayload } from '@/lib/applications'
-import { APPLICATIONS_CLOSED_MESSAGE } from '@/lib/applicationDeadline'
 
 const getBaseUrl = () =>
   (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) || 'http://localhost:5000/api'
@@ -140,7 +139,6 @@ export const APPLY_ERROR_MESSAGES: Record<string, string> = {
   YEAR_NOT_ALLOWED: 'Your year group is not allowed.',
   ALREADY_APPLIED: 'You already applied.',
   INVALID_RESPONSES: 'Please check your answers and fill in all required fields.',
-  APPLICATIONS_CLOSED: APPLICATIONS_CLOSED_MESSAGE,
 }
 
 export function getApplyErrorMessage(code: string, message?: string): string {

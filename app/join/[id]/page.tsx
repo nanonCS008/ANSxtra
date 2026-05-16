@@ -8,13 +8,6 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { RadioGroup } from '@/components/ui/RadioGroup'
 import { getApplyErrorMessage, submitApplication } from '@/lib/api'
 import { saveApplication, type ClubApplicationPayload } from '@/lib/applications'
-import {
-  APPLICATIONS_CLOSED_HINT,
-  APPLICATIONS_CLOSED_MESSAGE,
-  APPLICATIONS_DEADLINE_HINT,
-  areClubApplicationsOpen,
-  canSubmitClubApplication,
-} from '@/lib/applicationDeadline'
 import { getClubFormFields } from '@/lib/clubFormFields'
 import { TEDX_ARCHIVE_ITEMS } from '@/components/clubs/TEDxLivestreamArchive'
 import { getClubById } from '@/lib/data'
@@ -206,10 +199,7 @@ export default function JoinPage() {
   }, [responses, fields, state])
 
   const validationErrors = useMemo(() => getValidationErrors(), [getValidationErrors])
-  const applicationsOpen = areClubApplicationsOpen()
-  const acceptingApplications = canSubmitClubApplication(club.accepting)
-  const canSubmit =
-    acceptingApplications && !isSubmitting && Object.keys(validationErrors).length === 0
+  const canSubmit = club.accepting && !isSubmitting && Object.keys(validationErrors).length === 0
 
   const derivedStudentId = useMemo(() => {
     const email = session?.user?.email?.trim().toLowerCase() ?? ''
@@ -295,7 +285,7 @@ export default function JoinPage() {
       return
     }
 
-    if (!acceptingApplications) return
+    if (!club.accepting) return
 
     setIsSubmitting(true)
     setSubmitError(null)
@@ -547,7 +537,7 @@ export default function JoinPage() {
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
             Apply to {club.name}
           </h1>
-          <p className="text-white/60 mb-1">
+          <p className="text-white/60 mb-8">
             {formCopy?.pageDescription ??
               (fields.length === 0
                 ? NO_QUESTIONS_CLUB_IDS.has(club.id)
@@ -555,11 +545,8 @@ export default function JoinPage() {
                   : 'Confirm your details below and submit to register your interest with the club leaders.'
                 : 'Fill out the form below to submit your application.')}
           </p>
-          <p className="text-white/35 text-xs mb-8">
-            {applicationsOpen ? APPLICATIONS_DEADLINE_HINT : APPLICATIONS_CLOSED_HINT}
-          </p>
 
-          {applicationsOpen && !club.accepting && (
+          {!club.accepting && (
             <Card padding="lg" className="border-amber-500/30 bg-amber-500/10 mb-8">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400 flex-shrink-0">
@@ -658,7 +645,7 @@ export default function JoinPage() {
               type="submit"
               size="lg"
               fullWidth
-              disabled={!acceptingApplications || isSubmitting || !canSubmit}
+              disabled={!club.accepting || isSubmitting || !canSubmit}
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
@@ -673,15 +660,13 @@ export default function JoinPage() {
               )}
             </Button>
 
-            {!acceptingApplications && (
+            {!club.accepting && (
               <p className="text-white/50 text-sm text-center mt-4">
-                {!applicationsOpen
-                  ? APPLICATIONS_CLOSED_MESSAGE
-                  : 'This club is not currently accepting applications.'}
+                This club is not currently accepting applications.
               </p>
             )}
 
-            {acceptingApplications && !isSubmitting && !canSubmit && (
+            {club.accepting && !isSubmitting && !canSubmit && (
               <p className="text-white/45 text-sm text-center mt-4">
                 Complete required fields to submit.
               </p>
