@@ -5,8 +5,10 @@ import type { ApplicationResponseDisplayRow } from '@/lib/clubFormFields';
 const FONT =
   "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 const SIDEBAR = '#0f172a';
-const PENDING_BORDER = '#fbbf24';
-const PENDING_BG = '#fffbeb';
+/** Yellow palette — no brown tones */
+const PENDING_BG = '#fef9c3';
+const PENDING_BORDER = '#facc15';
+const PENDING_LABEL = '#1e293b';
 
 function escapeHtml(text: string): string {
   return text
@@ -62,7 +64,7 @@ export function buildStudentApplicationReceivedEmailHtml(p: StudentApplicationRe
 
   const statusPill = `
     <div style="display:inline-block;margin:0 0 18px;padding:8px 14px;border-radius:999px;background:${PENDING_BG};border:1px solid ${PENDING_BORDER};">
-      <span style="font-size:12px;font-weight:800;color:#b45309;letter-spacing:0.06em;text-transform:uppercase;">Pending review</span>
+      <span style="font-size:12px;font-weight:800;color:${PENDING_LABEL};letter-spacing:0.06em;text-transform:uppercase;">Pending review</span>
     </div>`;
 
   const intro =
@@ -117,16 +119,11 @@ export function buildStudentApplicationReceivedEmailHtml(p: StudentApplicationRe
       <td align="center">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(15,23,42,0.08);border:1px solid #e2e8f0;">
           <tr>
-            <td style="height:4px;background:#f59e0b;line-height:4px;font-size:0;">&nbsp;</td>
+            <td style="height:4px;background:#eab308;line-height:4px;font-size:0;">&nbsp;</td>
           </tr>
           <tr>
-            <td style="padding:0;">
+            <td style="padding:12px 22px 28px;font-family:${FONT};">
               ${brand}
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:0 8px 8px;">
-              <div style="padding:8px 22px 28px;font-family:${FONT};">
                 <p style="margin:0 0 6px;font-size:11px;color:#64748b;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">
                   Application received
                 </p>
@@ -136,7 +133,6 @@ export function buildStudentApplicationReceivedEmailHtml(p: StudentApplicationRe
                 ${sectionsHtml}
                 ${nextSteps}
                 ${myApps}
-              </div>
             </td>
           </tr>
         </table>

@@ -64,6 +64,29 @@ export function getPublicSiteUrl(): string | null {
   return null;
 }
 
+let warnedFeedbackFormUrl = false;
+
+/** Default [ANSXtra Feedback](https://forms.gle/cSos2G3GkmCEuq7G8) Google Form — no env required. */
+const DEFAULT_ANSXTRA_FEEDBACK_FORM_URL = 'https://forms.gle/cSos2G3GkmCEuq7G8';
+
+/**
+ * HTTPS URL for the ANSxtra feedback form in approval emails.
+ * Uses `ANSXTRA_FEEDBACK_FORM_URL` when set to a valid https URL; otherwise the built-in Google Form.
+ */
+export function getAnsxtraFeedbackFormUrl(): string {
+  const raw = process.env.ANSXTRA_FEEDBACK_FORM_URL?.trim();
+  if (raw) {
+    if (/^https:\/\//i.test(raw)) return raw;
+    if (!warnedFeedbackFormUrl) {
+      warnedFeedbackFormUrl = true;
+      console.warn(
+        '[email] ANSXTRA_FEEDBACK_FORM_URL must be an https URL; using default ANSxtra feedback form.'
+      );
+    }
+  }
+  return DEFAULT_ANSXTRA_FEEDBACK_FORM_URL;
+}
+
 /**
  * Absolute HTTPS URL for the brand mark shown inside HTML emails (approval, etc.).
  * Set `EMAIL_BRAND_LOGO_URL` to any square-ish PNG/SVG URL you host publicly.
@@ -81,37 +104,24 @@ export function getEmailBrandLogoUrl(): string | null {
 
 const BRAND_PINK = '#D946EF';
 
-/**
- * Email header: optional logo image + always-visible wordmark so the message still looks branded if the image 404s or is blocked.
- * Use empty `alt` on the image to avoid a broken icon showing duplicate “ANSxtra” text in some clients.
- */
-export function getEmailBrandHeaderBlockHtml(): string {
-  const url = getEmailBrandLogoUrl();
-  const wordmark = `
-    <div style="font-size:20px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;line-height:1.25;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+function getEmailBrandWordmarkInnerHtml(): string {
+  return `
+    <div style="font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;line-height:1.2;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
       ANS<span style="color:${BRAND_PINK};">x</span>tra
     </div>
-    <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.14em;margin-top:6px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+    <div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:0.12em;margin-top:4px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
       Club applications
     </div>`;
+}
 
-  if (!url) {
-    return `
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 8px;">
-        <tr>
-          <td align="center" style="padding:12px 16px 20px;">${wordmark}</td>
-        </tr>
-      </table>`;
-  }
-
-  const src = escapeAttrUrl(url);
+/**
+ * Text-only ANSxtra header for HTML emails (no logo image; compact vertical space).
+ */
+export function getEmailBrandHeaderBlockHtml(): string {
   return `
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 8px;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0;">
       <tr>
-        <td align="center" style="padding:16px 16px 12px;">
-          <img src="${src}" alt="" width="64" height="64" style="display:block;margin:0 auto 14px;width:64px;max-width:64px;height:64px;border:0;outline:none;text-decoration:none;" />
-          ${wordmark}
-        </td>
+        <td align="center" style="padding:0 0 8px;">${getEmailBrandWordmarkInnerHtml()}</td>
       </tr>
     </table>`;
 }

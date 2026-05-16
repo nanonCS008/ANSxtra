@@ -1,3 +1,5 @@
+import { escapeAttrUrl, getAnsxtraFeedbackFormUrl } from '@/lib/resendConfig';
+
 const FONT =
   "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 const BRAND_PINK = '#D946EF';
@@ -58,6 +60,24 @@ function meetingScheduleBlock(p: StudentApplicationStatusEmailParams): string {
     </div>`;
 }
 
+function approvalFeedbackBlock(): string {
+  const url = getAnsxtraFeedbackFormUrl();
+  const href = escapeAttrUrl(url);
+  return `
+    <div style="margin-top:24px;padding:16px 18px;border-radius:12px;background:#ecfdf5;border:1px solid #a7f3d0;">
+      <div style="font-size:11px;font-weight:700;color:#047857;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;">
+        Help us improve ANSxtra
+      </div>
+      <p style="margin:0 0 14px;font-size:14px;line-height:1.55;color:#14532d;">
+        If you have a moment, please complete our short feedback form. Your responses help the team improve the club application experience and guide future development.
+      </p>
+      <a href="${href}"
+        style="display:inline-block;padding:10px 18px;border-radius:10px;background:#047857;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none;">
+        Open feedback form
+      </a>
+    </div>`;
+}
+
 /**
  * HTML for the student-facing application approved / rejected email (Resend).
  */
@@ -90,6 +110,7 @@ export function buildStudentApplicationStatusEmailHtml(p: StudentApplicationStat
       : '';
 
   const schedule = meetingScheduleBlock(p);
+  const feedback = p.status === 'approved' ? approvalFeedbackBlock() : '';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -120,6 +141,7 @@ export function buildStudentApplicationStatusEmailHtml(p: StudentApplicationStat
                 ${leaderMsg}
                 ${schedule}
                 ${notesBlock}
+                ${feedback}
               </div>
             </td>
           </tr>
