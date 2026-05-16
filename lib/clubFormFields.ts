@@ -1,6 +1,15 @@
 import type { ReactNode } from 'react'
 
-export type FieldKind = 'text' | 'textarea' | 'date' | 'radio' | 'checkbox' | 'checkboxGroup'
+import { formatDobIsoForDisplay } from '@/lib/dmyDate'
+
+export type FieldKind =
+  | 'text'
+  | 'textarea'
+  | 'date'
+  | 'dmyDate'
+  | 'radio'
+  | 'checkbox'
+  | 'checkboxGroup'
 
 export type FieldDef = {
   key: string
@@ -65,7 +74,12 @@ const FIELDS_BY_CLUB: Record<string, FieldDef[]> = {
       required: true,
       options: ['Bronze', 'Silver', 'Gold'],
     },
-    { key: 'date_of_birth', kind: 'date', label: 'Date of birth (to confirm age eligibility)', required: true },
+    {
+      key: 'date_of_birth',
+      kind: 'dmyDate',
+      label: 'Date of birth (to confirm age eligibility)',
+      required: true,
+    },
     { key: 'why_join', kind: 'textarea', label: 'Why do you want to join the DofE International Award?', required: true, minLength: 5 },
     { key: 'previous_dofe', kind: 'textarea', label: 'Have you previously completed any level of the DofE Award? (If yes please specify)', required: true, minLength: 2 },
     {
@@ -185,6 +199,14 @@ function formatResponseForStudentEmail(val: unknown, field?: FieldDef): string {
     const yes = val === true || s === 'true' || s === '1' || s === 'yes'
     return yes ? 'Yes' : 'No'
   }
+  if (field?.kind === 'dmyDate' || field?.kind === 'date') {
+    const t = typeof val === 'string' ? val.trim() : ''
+    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) {
+      const formatted = formatDobIsoForDisplay(t)
+      if (field.kind === 'dmyDate') return `${formatted} (CE)`
+      return formatted
+    }
+  }
   if (typeof val === 'string') {
     const t = val.trim()
     if (t.startsWith('[') && t.endsWith(']')) {
@@ -234,6 +256,11 @@ export function getQuestionColumnsForClub(clubId: string): { key: string; label:
 export function getResponseValueForExport(responses: unknown, clubId: string, key: string): string {
   const o = parseResponsesObject(responses)
   if (!o || !(key in o)) return ''
+  const field = getClubFormFields(clubId).find((f) => f.key === key)
+  if (field?.kind === 'dmyDate' && typeof o[key] === 'string') {
+    const t = o[key].trim()
+    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return `${formatDobIsoForDisplay(t)} (CE)`
+  }
   return formatResponseValue(o[key])
 }
 
@@ -257,7 +284,7 @@ export function formatApplicationResponsesForExport(responses: unknown, clubId: 
   return keys
     .map((key) => {
       const label = labelByKey.get(key) ?? humanizeResponseKey(key)
-      return `${label}: ${formatResponseValue(o[key])}`
+      return `${label}: ${getResponseValueForExport(o, clubId, key)}`
     })
     .join('\n')
 }

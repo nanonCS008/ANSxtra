@@ -1,4 +1,4 @@
-import { escapeAttrUrl, getAnsxtraFeedbackFormUrl } from '@/lib/resendConfig';
+import { escapeAttrUrl, getAnsxtraFeedbackFormUrl, getStudentEmailSupportFooterHtml } from '@/lib/resendConfig';
 
 const FONT =
   "ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
@@ -149,6 +149,7 @@ export function buildStudentApplicationStatusEmailHtml(p: StudentApplicationStat
         <p style="margin:16px 0 0;font-size:11px;color:#94a3b8;font-family:${FONT};max-width:520px;">
           This message was sent by ANSxtra on behalf of your school club team.
         </p>
+        ${getStudentEmailSupportFooterHtml()}
       </td>
     </tr>
   </table>

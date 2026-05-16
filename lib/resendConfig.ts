@@ -51,6 +51,19 @@ export function escapeAttrUrl(url: string): string {
   return url.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '%3C');
 }
 
+const STUDENT_SUPPORT_EMAIL = '79528@student.amnuaysilpa.ac.th';
+
+/**
+ * Very small, low-contrast line for student-facing transactional emails.
+ */
+export function getStudentEmailSupportFooterHtml(): string {
+  const href = escapeAttrUrl(`mailto:${STUDENT_SUPPORT_EMAIL}`);
+  return `<p style="margin:8px 0 0;font-size:10px;line-height:1.5;color:#cbd5e1;font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:520px;">
+    Issues or complaints? Contact Nanon Jirapongsuwan:
+    <a href="${href}" style="color:#94a3b8;text-decoration:none;border-bottom:1px solid #cbd5e1;">${STUDENT_SUPPORT_EMAIL}</a>
+  </p>`;
+}
+
 /**
  * Public HTTPS origin for links and assets in emails (`https://your-domain.com`, no trailing slash).
  */

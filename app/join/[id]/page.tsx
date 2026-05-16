@@ -9,7 +9,9 @@ import { RadioGroup } from '@/components/ui/RadioGroup'
 import { getApplyErrorMessage, submitApplication } from '@/lib/api'
 import { saveApplication, type ClubApplicationPayload } from '@/lib/applications'
 import { getClubFormFields } from '@/lib/clubFormFields'
+import { isValidStoredDobIso } from '@/lib/dmyDate'
 import { TEDX_ARCHIVE_ITEMS } from '@/components/clubs/TEDxLivestreamArchive'
+import { DmyDateField } from '@/components/join/DmyDateField'
 import { getClubById } from '@/lib/data'
 import { cn } from '@/lib/utils/cn'
 import { motion } from 'framer-motion'
@@ -18,7 +20,14 @@ import { notFound, useParams, useRouter } from 'next/navigation'
 import { FormEvent, ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 
-type FieldKind = 'text' | 'textarea' | 'date' | 'radio' | 'checkbox' | 'checkboxGroup'
+type FieldKind =
+  | 'text'
+  | 'textarea'
+  | 'date'
+  | 'dmyDate'
+  | 'radio'
+  | 'checkbox'
+  | 'checkboxGroup'
 type ResponseValue = string | boolean | string[]
 
 type FieldDef = {
@@ -184,6 +193,18 @@ export default function JoinPage() {
         if (arr.length < 1) newErrors[field.key] = 'Please select at least one option'
         continue
       }
+      if (field.kind === 'dmyDate') {
+        const s = typeof v === 'string' ? v.trim() : ''
+        if (!s) {
+          newErrors[field.key] = 'This field is required'
+          continue
+        }
+        if (!isValidStoredDobIso(s)) {
+          newErrors[field.key] = 'Please choose a valid date of birth'
+          continue
+        }
+        continue
+      }
       const s = typeof v === 'string' ? v.trim() : ''
       if (!s) {
         newErrors[field.key] = 'This field is required'
@@ -278,7 +299,9 @@ export default function JoinPage() {
         el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
         // Focus if it’s an actual input/textarea
         requestAnimationFrame(() => {
-          const input = document.getElementById(firstKey) as HTMLInputElement | HTMLTextAreaElement | null
+          const fdef = fields.find((f) => f.key === firstKey)
+          const focusId = fdef?.kind === 'dmyDate' ? `${firstKey}-day` : firstKey
+          const input = document.getElementById(focusId) as HTMLInputElement | HTMLTextAreaElement | null
           input?.focus()
         })
       }
@@ -441,6 +464,24 @@ export default function JoinPage() {
             </span>
           </label>
           {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+        </div>
+      )
+    }
+
+    if (field.kind === 'dmyDate') {
+      return (
+        <div ref={(el) => { fieldRefs.current[field.key] = el }} className="w-full">
+          <DmyDateField
+            fieldKey={field.key}
+            label={field.label}
+            required={required}
+            value={typeof v === 'string' ? v : ''}
+            onChange={(iso) => {
+              setResponses((prev) => ({ ...prev, [field.key]: iso }))
+            }}
+            onBlur={() => setTouched((prev) => ({ ...prev, [field.key]: true }))}
+            error={error}
+          />
         </div>
       )
     }

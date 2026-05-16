@@ -1,4 +1,4 @@
-import { getEmailBrandHeaderBlockHtml, escapeAttrUrl } from '@/lib/resendConfig';
+import { getEmailBrandHeaderBlockHtml, escapeAttrUrl, getStudentEmailSupportFooterHtml } from '@/lib/resendConfig';
 
 import type { ApplicationResponseDisplayRow } from '@/lib/clubFormFields';
 
@@ -139,6 +139,7 @@ export function buildStudentApplicationReceivedEmailHtml(p: StudentApplicationRe
         <p style="margin:16px 0 0;font-size:11px;color:#94a3b8;font-family:${FONT};max-width:520px;">
           This message was sent by ANSxtra to confirm your club application was submitted.
         </p>
+        ${getStudentEmailSupportFooterHtml()}
       </td>
     </tr>
   </table>
