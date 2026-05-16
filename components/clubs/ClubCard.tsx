@@ -3,6 +3,7 @@
 import { Club } from '@/lib/types/club'
 import { getClubSummary } from '@/lib/clubSummary'
 import { getClubTintRgb, getClubTintGradientCss, getClubTintHex } from '@/lib/clubHues'
+import { canSubmitClubApplication } from '@/lib/applicationDeadline'
 import { getClubType } from '@/lib/clubTypes'
 import { cn } from '@/lib/utils/cn'
 import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'framer-motion'
@@ -25,6 +26,7 @@ export function ClubCard({ club, compact, selectable, selected, onSelect, applie
   const [isHovered, setIsHovered] = useState(false)
   const reducedMotion = useReducedMotion()
   const router = useRouter()
+  const canApply = canSubmitClubApplication(club.accepting)
 
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
@@ -206,20 +208,20 @@ export function ClubCard({ club, compact, selectable, selected, onSelect, applie
         <button
           type="button"
           onClick={() => {
-            if (applied) return
+            if (applied || !canApply) return
             router.push(`/join/${club.id}`)
           }}
           className={cn(
             'inline-flex min-h-[32px] items-center justify-center rounded-md',
             'px-3 text-[11px] font-semibold',
-            applied
+            applied || !canApply
               ? 'bg-white/[0.06] text-white/50 border border-white/10 cursor-not-allowed'
               : 'bg-brand-pink/90 text-white shadow-sm hover:bg-brand-pink transition-colors'
           )}
           aria-label={`Apply to ${club.displayName ?? club.name}`}
-          disabled={!!applied}
+          disabled={!!applied || !canApply}
         >
-          {applied ? 'Applied' : 'Apply'}
+          {applied ? 'Applied' : !canApply ? 'Closed' : 'Apply'}
         </button>
       )}
     </div>

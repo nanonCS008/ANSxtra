@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 const TEDX_RED = '#c92a2a'
 
-const ARCHIVE_ITEMS = [
+export const TEDX_ARCHIVE_ITEMS = [
   {
     year: 2026,
     videoId: 'zKHNISnOFrU',
@@ -167,7 +167,7 @@ export function TEDxLivestreamArchive() {
     setModalYear(null)
   }, [])
 
-  const current = ARCHIVE_ITEMS.find((a) => a.year === modalYear)
+  const current = TEDX_ARCHIVE_ITEMS.find((a) => a.year === modalYear)
 
   return (
     <>
@@ -179,7 +179,7 @@ export function TEDxLivestreamArchive() {
           Past Speakers / Livestream Archive
         </h2>
         <div className="grid grid-cols-3 gap-2 sm:gap-3">
-          {ARCHIVE_ITEMS.map((item) => (
+          {TEDX_ARCHIVE_ITEMS.map((item) => (
             <ArchiveCard
               key={item.year}
               year={item.year}

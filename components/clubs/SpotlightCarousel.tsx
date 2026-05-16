@@ -1,5 +1,6 @@
 'use client'
 
+import { canSubmitClubApplication } from '@/lib/applicationDeadline'
 import { Club } from '@/lib/types/club'
 import { getClubTintRgb, getClubTintGradientCss } from '@/lib/clubHues'
 import { cn } from '@/lib/utils/cn'
@@ -112,12 +113,12 @@ export function SpotlightCarousel({
           <span
             className={cn(
               'inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold',
-              club.accepting
+              canSubmitClubApplication(club.accepting)
                 ? 'bg-emerald-500/95 text-white border border-emerald-400/50'
                 : 'bg-white/15 text-white/90 border border-white/20'
             )}
           >
-            {club.accepting ? 'Now Accepting Members' : 'Not accepting'}
+            {canSubmitClubApplication(club.accepting) ? 'Now Accepting Members' : 'Not accepting'}
           </span>
         </div>
 

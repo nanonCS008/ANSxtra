@@ -4,7 +4,11 @@ import { createClient } from '@supabase/supabase-js';
 import { authOptions } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
 import clubs from '@/data/clubs.json';
-import { formatApplicationResponsesForExport } from '@/lib/clubFormFields';
+import {
+  formatApplicationResponsesForExport,
+  getQuestionColumnsForClub,
+  getResponseValueForExport,
+} from '@/lib/clubFormFields';
 
 export const dynamic = 'force-dynamic';
 
@@ -231,9 +235,15 @@ export async function GET(request: NextRequest) {
 
   if (groupBy === 'club') {
     const useClubColumn = clubIdAll;
+    const singleClubId = !clubIdAll && clubId ? clubId : null;
+    const questionColumns = singleClubId ? getQuestionColumnsForClub(singleClubId) : [];
+
+    const baseColumns = ['Nickname', 'Full name', 'Year group', 'Email'] as const;
     csvHeader = useClubColumn
-      ? ['Club', 'Email', 'Full name', 'Nickname', 'Year group', 'Responses']
-      : ['Email', 'Full name', 'Nickname', 'Year group', 'Responses'];
+      ? ['Club', ...baseColumns, 'Responses']
+      : questionColumns.length > 0
+        ? [...baseColumns, ...questionColumns.map((q) => q.label)]
+        : [...baseColumns, 'Responses'];
 
     const sorted = [...filtered].sort((a, b) => {
       const ya = getYearForFilter(a);
@@ -253,15 +263,32 @@ export async function GET(request: NextRequest) {
             : null;
       const yearCell = yearVal == null ? '' : String(yearVal);
 
-      const line = [
-        emailByUserId.get(row.user_id) ?? '',
-        fullNameFromRow(row),
+      const identityCells = [
         row.prename == null ? '' : String(row.prename).trim(),
+        fullNameFromRow(row),
         yearCell,
+        emailByUserId.get(row.user_id) ?? '',
+      ];
+
+      if (useClubColumn) {
+        return [
+          clubName,
+          ...identityCells,
+          formatApplicationResponsesForExport(row.responses, row.club_id),
+        ];
+      }
+
+      if (questionColumns.length > 0) {
+        return [
+          ...identityCells,
+          ...questionColumns.map((q) => getResponseValueForExport(row.responses, row.club_id, q.key)),
+        ];
+      }
+
+      return [
+        ...identityCells,
         formatApplicationResponsesForExport(row.responses, row.club_id),
       ];
-      if (useClubColumn) line.unshift(clubName);
-      return line;
     });
   } else {
     csvHeader = [

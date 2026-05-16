@@ -8,7 +8,15 @@ import { Input, Textarea } from '@/components/ui/Input'
 import { RadioGroup } from '@/components/ui/RadioGroup'
 import { getApplyErrorMessage, submitApplication } from '@/lib/api'
 import { saveApplication, type ClubApplicationPayload } from '@/lib/applications'
+import {
+  APPLICATIONS_CLOSED_HINT,
+  APPLICATIONS_CLOSED_MESSAGE,
+  APPLICATIONS_DEADLINE_HINT,
+  areClubApplicationsOpen,
+  canSubmitClubApplication,
+} from '@/lib/applicationDeadline'
 import { getClubFormFields } from '@/lib/clubFormFields'
+import { TEDX_ARCHIVE_ITEMS } from '@/components/clubs/TEDxLivestreamArchive'
 import { getClubById } from '@/lib/data'
 import { cn } from '@/lib/utils/cn'
 import { motion } from 'framer-motion'
@@ -38,6 +46,33 @@ function isVisible(field: FieldDef, state: { responses: Record<string, ResponseV
 
 function isRequired(field: FieldDef, state: { responses: Record<string, ResponseValue> }) {
   return typeof field.required === 'function' ? field.required(state) : field.required
+}
+
+const NO_QUESTIONS_CLUB_IDS = new Set(['mun', 'enterprise-club'])
+
+type JoinFormCopy = {
+  pageDescription?: string
+  questionsIntro?: string
+  questionsNote?: string
+  textareaPlaceholder?: string
+}
+
+const JOIN_FORM_COPY: Partial<Record<string, JoinFormCopy>> = {
+  'student-council': {
+    questionsIntro:
+      'Please answer the following questions. These are long-form questions — write your answers in full paragraphs.',
+    questionsNote:
+      'There is no minimum word count per question, but the depth of your answers will be taken into consideration when choosing candidates.',
+    textareaPlaceholder: 'Write your answer in full sentences and paragraphs…',
+  },
+  mun: {
+    pageDescription:
+      'This club has no application questions. Review your details below and submit to apply straight away.',
+  },
+  'enterprise-club': {
+    pageDescription:
+      'This club has no application questions. Review your details below and submit to apply straight away.',
+  },
 }
 
 function getClubFields(clubId: string): FieldDef[] {
@@ -131,7 +166,11 @@ export default function JoinPage() {
   }
 
   const fields = useMemo(() => getClubFields(club.id), [club.id])
+  const formCopy = JOIN_FORM_COPY[club.id]
   const state = useMemo(() => ({ responses }), [responses])
+  const defaultTextareaPlaceholder =
+    formCopy?.textareaPlaceholder ??
+    (club.id === 'student-council' ? 'Write your answer in full sentences and paragraphs…' : 'Your answer…')
 
   const fieldRefs = useRef<Record<string, HTMLElement | null>>({})
 
@@ -167,7 +206,10 @@ export default function JoinPage() {
   }, [responses, fields, state])
 
   const validationErrors = useMemo(() => getValidationErrors(), [getValidationErrors])
-  const canSubmit = club.accepting && !isSubmitting && Object.keys(validationErrors).length === 0
+  const applicationsOpen = areClubApplicationsOpen()
+  const acceptingApplications = canSubmitClubApplication(club.accepting)
+  const canSubmit =
+    acceptingApplications && !isSubmitting && Object.keys(validationErrors).length === 0
 
   const derivedStudentId = useMemo(() => {
     const email = session?.user?.email?.trim().toLowerCase() ?? ''
@@ -253,7 +295,7 @@ export default function JoinPage() {
       return
     }
 
-    if (!club.accepting) return
+    if (!acceptingApplications) return
 
     setIsSubmitting(true)
     setSubmitError(null)
@@ -459,7 +501,7 @@ export default function JoinPage() {
             onBlur={() => setTouched((prev) => ({ ...prev, [field.key]: true }))}
             error={error}
             required={required}
-            placeholder={field.placeholder ?? 'Write a short response...'}
+            placeholder={field.placeholder ?? defaultTextareaPlaceholder}
           />
         </div>
       )
@@ -505,14 +547,19 @@ export default function JoinPage() {
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
             Apply to {club.name}
           </h1>
-          <p className="text-white/60 mb-8">
-            {fields.length === 0
-              ? 'Confirm your details below and submit to register your interest with the club leaders.'
-              : 'Fill out the form below to submit your application.'}
+          <p className="text-white/60 mb-1">
+            {formCopy?.pageDescription ??
+              (fields.length === 0
+                ? NO_QUESTIONS_CLUB_IDS.has(club.id)
+                  ? 'This club has no application questions. Review your details below and submit to apply straight away.'
+                  : 'Confirm your details below and submit to register your interest with the club leaders.'
+                : 'Fill out the form below to submit your application.')}
+          </p>
+          <p className="text-white/35 text-xs mb-8">
+            {applicationsOpen ? APPLICATIONS_DEADLINE_HINT : APPLICATIONS_CLOSED_HINT}
           </p>
 
-          {/* Not accepting notice */}
-          {!club.accepting && (
+          {applicationsOpen && !club.accepting && (
             <Card padding="lg" className="border-amber-500/30 bg-amber-500/10 mb-8">
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400 flex-shrink-0">
@@ -543,15 +590,49 @@ export default function JoinPage() {
               </p>
             </Card>
 
+            {club.id === 'tedx' && (
+              <div className="mb-6 rounded-xl border border-[#c92a2a]/30 bg-[#c92a2a]/5 px-4 py-3">
+                <p className="text-white/80 text-sm font-medium mb-2">
+                  Watch a past TEDx Youth talk before you apply
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {TEDX_ARCHIVE_ITEMS.map((item) => (
+                    <a
+                      key={item.year}
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center rounded-lg border border-white/15 bg-brand-navy/60 px-3 py-1.5 text-sm text-white/90 hover:border-[#c92a2a]/50 hover:text-white transition-colors"
+                    >
+                      {item.year} talk{item.mostRecent ? ' (latest)' : ''}
+                    </a>
+                  ))}
+                  <Link
+                    href="/clubs/tedx"
+                    className="inline-flex items-center rounded-lg px-3 py-1.5 text-sm text-white/55 hover:text-white/80 transition-colors"
+                  >
+                    View on club page →
+                  </Link>
+                </div>
+              </div>
+            )}
+
             {/* Application questions */}
             {fields.length > 0 && (
               <Card padding="lg" className="mb-6">
                 <h2 className="text-lg font-bold text-white mb-2">
                   Application Questions
                 </h2>
-                <p className="text-white/60 text-sm mb-6">
-                  Please answer the following questions.
+                <p className="text-white/60 text-sm mb-3">
+                  {formCopy?.questionsIntro ?? 'Please answer the following questions.'}
                 </p>
+                {formCopy?.questionsNote ? (
+                  <p className="text-white/45 text-sm mb-6 border-l-2 border-brand-pink/40 pl-3">
+                    {formCopy.questionsNote}
+                  </p>
+                ) : (
+                  <div className="mb-6" aria-hidden />
+                )}
                 
                 <div className="space-y-6">
                   {fields.map((field) => (
@@ -577,7 +658,7 @@ export default function JoinPage() {
               type="submit"
               size="lg"
               fullWidth
-              disabled={!club.accepting || isSubmitting || !canSubmit}
+              disabled={!acceptingApplications || isSubmitting || !canSubmit}
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
@@ -592,13 +673,15 @@ export default function JoinPage() {
               )}
             </Button>
 
-            {!club.accepting && (
+            {!acceptingApplications && (
               <p className="text-white/50 text-sm text-center mt-4">
-                This club is not currently accepting applications.
+                {!applicationsOpen
+                  ? APPLICATIONS_CLOSED_MESSAGE
+                  : 'This club is not currently accepting applications.'}
               </p>
             )}
 
-            {club.accepting && !isSubmitting && !canSubmit && (
+            {acceptingApplications && !isSubmitting && !canSubmit && (
               <p className="text-white/45 text-sm text-center mt-4">
                 Complete required fields to submit.
               </p>

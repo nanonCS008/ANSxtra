@@ -6,6 +6,7 @@ import clubs from '@/data/clubs.json'
 import crypto from 'crypto'
 import { formatResendError, getResendClient, getResendFrom } from '@/lib/resendConfig'
 import { getAdminEmails } from '@/lib/admin'
+import { areClubApplicationsOpen, APPLICATIONS_CLOSED_MESSAGE } from '@/lib/applicationDeadline'
 
 function getStudentIdFromEmail(email: string): string | null {
   const normalized = email.trim().toLowerCase()
@@ -41,6 +42,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { code: 'UNAUTHORIZED', error: 'Unauthorized' },
         { status: 401 }
+      )
+    }
+
+    if (!areClubApplicationsOpen()) {
+      return NextResponse.json(
+        { code: 'APPLICATIONS_CLOSED', error: APPLICATIONS_CLOSED_MESSAGE },
+        { status: 403 }
       )
     }
 

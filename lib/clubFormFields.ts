@@ -37,11 +37,11 @@ const FIELDS_BY_CLUB: Record<string, FieldDef[]> = {
     { key: 'field_of_interests_other', kind: 'text', label: 'Other (please specify)', required: false, placeholder: 'Type your field of interest...' },
   ],
   'interact-club': [
-    { key: 'why_join', kind: 'textarea', label: 'Why do they want to join the Interact Club', required: true, minLength: 5 },
+    { key: 'why_join', kind: 'textarea', label: 'Why do you want to join the Interact Club?', required: true, minLength: 5 },
     {
       key: 'which_roles',
       kind: 'checkboxGroup',
-      label: 'Which roles would they like to join? (Several students can share each role—typically around 1–10 per role.)',
+      label: 'Which sectors are you interested in joining? (Able to select many)',
       required: true,
       options: [
         'Treasurer',
@@ -54,8 +54,8 @@ const FIELDS_BY_CLUB: Record<string, FieldDef[]> = {
     },
   ],
   'eco-committee': [
-    { key: 'why_join', kind: 'textarea', label: 'Why do they want to join the eco committee', required: true, minLength: 5 },
-    { key: 'how_will_joining_affect_you', kind: 'textarea', label: 'How will joining this club affect them as an individual?', required: true, minLength: 5 },
+    { key: 'why_join', kind: 'textarea', label: 'Why do you want to join the Eco Committee?', required: true, minLength: 5 },
+    { key: 'how_will_joining_affect_you', kind: 'textarea', label: 'How will joining this club affect you as an individual?', required: true, minLength: 5 },
   ],
   'duke-of-edinburgh': [
     {
@@ -81,7 +81,7 @@ const FIELDS_BY_CLUB: Record<string, FieldDef[]> = {
     {
       key: 'which_group',
       kind: 'checkboxGroup',
-      label: 'Which group they want to join within UNICEF (Event team and Graphics design team)',
+      label: 'Which group do you want to join within UNICEF? (Event team and Graphics design team)',
       required: true,
       options: ['Event team', 'Graphics design team'],
     },
@@ -125,7 +125,7 @@ const FIELDS_BY_CLUB: Record<string, FieldDef[]> = {
       required: true,
       minLength: 5,
     },
-    { key: 'interests_passions_abilities', kind: 'textarea', label: 'Interests passions and abilities', required: true, minLength: 5 },
+    { key: 'interests_passions_abilities', kind: 'textarea', label: 'What are your interests, hobbies, and passions?', required: true, minLength: 5 },
   ],
 }
 
@@ -150,20 +150,61 @@ function formatResponseValue(val: unknown): string {
  * Human-readable answers for exports (CSV), using the same question labels as the join form
  * (`club_question_labels.csv` / `getClubFormFields`). Unknown keys fall back to Title Case from the key.
  */
+function parseResponsesObject(responses: unknown): Record<string, unknown> | null {
+  if (responses == null) return null
+  if (typeof responses === 'string') {
+    const trimmed = responses.trim()
+    if (!trimmed) return null
+    try {
+      const parsed = JSON.parse(trimmed) as unknown
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>
+      }
+    } catch {
+      return null
+    }
+    return null
+  }
+  if (typeof responses !== 'object' || Array.isArray(responses)) return null
+  return responses as Record<string, unknown>
+}
+
+function orderedResponseKeys(o: Record<string, unknown>, clubId: string): string[] {
+  const fields = getClubFormFields(clubId)
+  const orderedKeys = fields.map((f) => f.key)
+  const present = new Set(Object.keys(o))
+  const orderedPresent = orderedKeys.filter((k) => present.has(k))
+  const extraKeys = [...present].filter((k) => !orderedKeys.includes(k)).sort()
+  return [...orderedPresent, ...extraKeys]
+}
+
+/** Question columns for a single-club CSV (header = full join-form label). */
+export function getQuestionColumnsForClub(clubId: string): { key: string; label: string }[] {
+  return getClubFormFields(clubId).map((f) => ({ key: f.key, label: f.label }))
+}
+
+export function getResponseValueForExport(responses: unknown, clubId: string, key: string): string {
+  const o = parseResponsesObject(responses)
+  if (!o || !(key in o)) return ''
+  return formatResponseValue(o[key])
+}
+
 export function formatApplicationResponsesForExport(responses: unknown, clubId: string): string {
   if (responses == null) return ''
-  if (typeof responses === 'string') return responses.trim()
+  if (typeof responses === 'string') {
+    const trimmed = responses.trim()
+    if (!trimmed) return ''
+    const parsed = parseResponsesObject(trimmed)
+    if (parsed) return formatApplicationResponsesForExport(parsed, clubId)
+    return trimmed
+  }
   if (typeof responses !== 'object') return String(responses)
   if (Array.isArray(responses)) return JSON.stringify(responses)
 
   const o = responses as Record<string, unknown>
   const fields = getClubFormFields(clubId)
   const labelByKey = new Map(fields.map((f) => [f.key, f.label]))
-  const orderedKeys = fields.map((f) => f.key)
-  const present = new Set(Object.keys(o))
-  const orderedPresent = orderedKeys.filter((k) => present.has(k))
-  const extraKeys = [...present].filter((k) => !orderedKeys.includes(k)).sort()
-  const keys = [...orderedPresent, ...extraKeys]
+  const keys = orderedResponseKeys(o, clubId)
 
   return keys
     .map((key) => {

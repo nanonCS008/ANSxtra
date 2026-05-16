@@ -3,6 +3,11 @@
 import { ClubGrid } from '@/components/clubs/ClubGrid'
 import { FilterBar, type YearGroupFilter } from '@/components/clubs/FilterBar'
 import { Container } from '@/components/ui/Container'
+import {
+  APPLICATIONS_CLOSED_HINT,
+  APPLICATIONS_DEADLINE_HINT,
+  areClubApplicationsOpen,
+} from '@/lib/applicationDeadline'
 import { getClubs } from '@/lib/data'
 import { Club } from '@/lib/types/club'
 import { motion } from 'framer-motion'
@@ -89,6 +94,8 @@ export default function ClubsPage() {
   const clubGridEmptyState =
     session?.user?.id && profileChecked && userYearGroup == null ? 'invalid_student' as const : 'no_matches' as const
 
+  const applicationsOpen = areClubApplicationsOpen()
+
   return (
     <div className="relative pt-8 pb-16 min-h-screen">
       <div
@@ -116,6 +123,9 @@ export default function ClubsPage() {
               ) : (
                 <>Showing <span className="font-semibold">{filteredClubs.length}</span> of <span className="font-semibold">{allClubs.length}</span> clubs</>
               )}
+            </p>
+            <p className="text-white/35 text-xs mt-1.5 font-normal">
+              {applicationsOpen ? APPLICATIONS_DEADLINE_HINT : APPLICATIONS_CLOSED_HINT}
             </p>
           </div>
           {!session?.user?.id && (

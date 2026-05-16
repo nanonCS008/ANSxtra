@@ -82,7 +82,9 @@ function formatEmailReportSummary(report: EmailReport | undefined): string {
       bits.push(`Send errors: ${report.failureSamples.slice(0, 5).join(' · ')}`);
     }
   }
-  bits.push(`From: ${report.fromUsed}. If Resend says invalid_from, verify that domain in Resend or set RESEND_FROM to a verified address (e.g. onboarding@resend.dev for testing).`);
+  bits.push(
+    `From: ${report.fromUsed}. If Resend says invalid_from, verify the sending domain in Resend or set RESEND_FROM. If it says API key is invalid, paste a fresh key from resend.com/api-keys (starts with re_) into Vercel RESEND_API_KEY and redeploy.`
+  );
   return `\n\n${bits.join(' ')}`;
 }
 
