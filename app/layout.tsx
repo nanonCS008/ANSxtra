@@ -1,3 +1,4 @@
+import { Analytics } from '@vercel/analytics/next'
 import { CursorTrail } from '@/components/ui/CursorTrail'
 import { TapRipple } from '@/components/ui/TapRipple'
 import { Footer } from '@/components/layout/Footer'
@@ -54,6 +55,7 @@ export default function RootLayout({
             <Footer />
           </MotionConfigTouchAware>
         </Providers>
+        <Analytics />
       </body>
     </html>
   )
