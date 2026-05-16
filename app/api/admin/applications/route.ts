@@ -4,7 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 import { authOptions } from '@/lib/auth';
 import { getAdminEmails, isAdminEmail } from '@/lib/admin';
 import clubs from '@/data/clubs.json';
-import { formatResendError, getResendClient, getResendFrom, getEmailBrandLogoImgHtml } from '@/lib/resendConfig';
+import { formatResendError, getResendClient, getResendFrom } from '@/lib/resendConfig';
+import { buildStudentApplicationStatusEmailHtml } from '@/lib/email/studentApplicationStatusHtml';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,6 +72,7 @@ async function sendStatusNotifications(params: {
 
   const supabase = getAdminClient();
   const clubName = clubs.find((club) => club.id === params.clubId)?.name ?? toTitleCase(params.clubId);
+  const clubMeta = clubs.find((club) => club.id === params.clubId);
   const statusLabel = params.status === 'approved' ? 'Approved' : 'Rejected';
   const nickname = params.studentNickname?.trim() || '';
   const nicknameSuffix = nickname ? ` (${nickname})` : '';
@@ -89,41 +91,26 @@ async function sendStatusNotifications(params: {
   }
   const adminRecipients = shouldSendAdminCopyEmails() ? getAdminEmails() : [];
 
-  const extraApproval =
-    params.status === 'approved' && params.acceptanceMessage?.trim()
-      ? `<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#f1f5f9;border:1px solid #e2e8f0;">
-          <div style="font-weight:700;color:#0f172a;margin-bottom:6px;">Message from club leader</div>
-          <div style="white-space:pre-wrap;color:#0f172a;line-height:1.55;">${escapeHtml(params.acceptanceMessage.trim())}</div>
-        </div>`
-      : '';
-
-  const logoHtml = getEmailBrandLogoImgHtml();
+  const studentEmailHtml = buildStudentApplicationStatusEmailHtml({
+    clubName,
+    status: params.status,
+    studentFullName: fullName || null,
+    notes: params.notes,
+    acceptanceMessage:
+      params.status === 'approved' && params.acceptanceMessage?.trim()
+        ? params.acceptanceMessage.trim()
+        : null,
+    meetingDay: clubMeta?.meetingDay ?? null,
+    meetingTime: clubMeta?.meetingTime ?? null,
+    location: clubMeta?.location ?? null,
+  });
 
   if (userEmail) {
     const { error } = await resend.emails.send({
       from,
       to: userEmail,
       subject: `${clubName} — Application ${statusLabel}${nicknameSuffix}`,
-      html: `
-          <div style="font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;max-width:640px;margin:0 auto;padding:4px 0;">
-            <div style="padding:18px 18px 14px;border:1px solid #e2e8f0;border-radius:14px;background:#ffffff;">
-              ${logoHtml}
-              <div style="font-size:20px;font-weight:800;color:#0f172a;">${escapeHtml(clubName)} — Application ${statusLabel}</div>
-              <div style="margin-top:12px;font-size:14px;color:#0f172a;line-height:1.6;">
-                ${fullName ? `<div style="margin-bottom:6px;">Hi <strong>${escapeHtml(fullName)}</strong>,</div>` : ''}
-                <div>Your application status is: <strong>${statusLabel}</strong>.</div>
-              </div>
-              ${params.notes ? `<div style="margin-top:14px;padding:12px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa;">
-                <div style="font-weight:700;color:#7c2d12;margin-bottom:6px;">Notes</div>
-                <div style="color:#7c2d12;white-space:pre-wrap;line-height:1.5;">${escapeHtml(params.notes)}</div>
-              </div>` : ''}
-              ${extraApproval}
-              <div style="margin-top:16px;font-size:13px;color:#64748b;">
-                You can check your status anytime in <strong>My Applications</strong>.
-              </div>
-            </div>
-          </div>
-        `,
+      html: studentEmailHtml,
     });
     if (error) {
       const detail = formatResendError(error);

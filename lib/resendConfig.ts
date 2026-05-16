@@ -47,8 +47,21 @@ export function getResendFrom(): string {
 }
 
 /** Escape a URL for use inside double-quoted HTML attributes. */
-function escapeAttrUrl(url: string): string {
+export function escapeAttrUrl(url: string): string {
   return url.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '%3C');
+}
+
+/**
+ * Public HTTPS origin for links and assets in emails (`https://your-domain.com`, no trailing slash).
+ */
+export function getPublicSiteUrl(): string | null {
+  const base = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '');
+  if (base && /^https:\/\//i.test(base)) return base;
+
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) return `https://${vercel.replace(/^https?:\/\//i, '')}`;
+
+  return null;
 }
 
 /**
@@ -60,21 +73,50 @@ export function getEmailBrandLogoUrl(): string | null {
   const custom = process.env.EMAIL_BRAND_LOGO_URL?.trim();
   if (custom && /^https:\/\//i.test(custom)) return custom;
 
-  const base = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '');
-  if (base && /^https:\/\//i.test(base)) return `${base}/ansxtra-logo.png`;
-
-  const vercel = process.env.VERCEL_URL?.trim();
-  if (vercel) return `https://${vercel.replace(/^https?:\/\//i, '')}/ansxtra-logo.png`;
+  const base = getPublicSiteUrl();
+  if (base) return `${base}/ansxtra-logo.png`;
 
   return null;
 }
 
-/** Optional centered `<img>` for transactional emails; empty string if no public URL configured. */
-export function getEmailBrandLogoImgHtml(): string {
+const BRAND_PINK = '#D946EF';
+
+/**
+ * Email header: optional logo image + always-visible wordmark so the message still looks branded if the image 404s or is blocked.
+ * Use empty `alt` on the image to avoid a broken icon showing duplicate “ANSxtra” text in some clients.
+ */
+export function getEmailBrandHeaderBlockHtml(): string {
   const url = getEmailBrandLogoUrl();
-  if (!url) return '';
+  const wordmark = `
+    <div style="font-size:20px;font-weight:800;letter-spacing:-0.02em;color:#0f172a;line-height:1.25;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+      ANS<span style="color:${BRAND_PINK};">x</span>tra
+    </div>
+    <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:0.14em;margin-top:6px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+      Club applications
+    </div>`;
+
+  if (!url) {
+    return `
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 8px;">
+        <tr>
+          <td align="center" style="padding:12px 16px 20px;">${wordmark}</td>
+        </tr>
+      </table>`;
+  }
+
   const src = escapeAttrUrl(url);
-  return `<div style="text-align:center;margin:0 0 16px;">
-    <img src="${src}" alt="ANSXtra" width="88" height="88" style="width:88px;max-width:88px;height:auto;display:inline-block;border:0;outline:none;text-decoration:none;" />
-  </div>`;
+  return `
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 8px;">
+      <tr>
+        <td align="center" style="padding:16px 16px 12px;">
+          <img src="${src}" alt="" width="64" height="64" style="display:block;margin:0 auto 14px;width:64px;max-width:64px;height:64px;border:0;outline:none;text-decoration:none;" />
+          ${wordmark}
+        </td>
+      </tr>
+    </table>`;
+}
+
+/** @deprecated Prefer getEmailBrandHeaderBlockHtml for student-facing templates. */
+export function getEmailBrandLogoImgHtml(): string {
+  return getEmailBrandHeaderBlockHtml();
 }
