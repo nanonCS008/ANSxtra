@@ -9,7 +9,6 @@ import { RadioGroup } from '@/components/ui/RadioGroup'
 import { getApplyErrorMessage, submitApplication } from '@/lib/api'
 import { saveApplication, type ClubApplicationPayload } from '@/lib/applications'
 import { getClubFormFields } from '@/lib/clubFormFields'
-import { SchoolShowStageCrewNotice } from '@/components/clubs/SchoolShowStageCrewNotice'
 import { STAGE_CREW_TEAM_OPTIONS } from '@/lib/schoolShowStageCrew'
 import { getExternalSignupMessage, isExternalSignupClub } from '@/lib/externalSignupClubs'
 import { isValidStoredDobIso } from '@/lib/dmyDate'
@@ -68,7 +67,7 @@ type JoinFormCopy = {
 const JOIN_FORM_COPY: Partial<Record<string, JoinFormCopy>> = {
   'school-show': {
     pageDescription:
-      'Apply for the School Show Stage Crew. Cast and performer roles use separate auditions — this form is for backstage and production teams only.',
+      'Submitting this application does not guarantee selection into the School Show Stage Crew. Applications will be reviewed by the leadership team.',
     questionsIntro: 'School Show Stage Crew application',
   },
   mun: {
@@ -163,13 +162,6 @@ export default function JoinPage() {
 
     fetchUserProfile()
   }, [session, status, router, fetchUserProfile])
-
-  useEffect(() => {
-    if (clubId !== 'school-show' || !session?.user?.name) return
-    const name = session.user.name.trim()
-    if (!name) return
-    setResponses((prev) => (prev.full_name ? prev : { ...prev, full_name: name }))
-  }, [clubId, session?.user?.name])
 
   useEffect(() => {
     const blockIfAlreadyApplied = async () => {
@@ -719,10 +711,6 @@ export default function JoinPage() {
                 <span className="text-white/85 font-medium">{session.user?.email ?? 'Unknown email'}</span>
               </p>
             </Card>
-
-            {club.id === 'school-show' && (
-              <SchoolShowStageCrewNotice className="mb-6" compact />
-            )}
 
             {club.id === 'tedx' && (
               <div className="mb-6 rounded-xl border border-[#c92a2a]/30 bg-[#c92a2a]/5 px-4 py-3">

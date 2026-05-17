@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 
 import { formatDobIsoForDisplay } from '@/lib/dmyDate'
-import { HOMEROOM_OPTIONS } from '@/lib/homeroomOptions'
 import { STAGE_CREW_TEAM_OPTIONS } from '@/lib/schoolShowStageCrew'
 
 export type FieldKind =
@@ -37,14 +36,6 @@ const FIELDS_BY_CLUB: Record<string, FieldDef[]> = {
     { key: 'why_join', kind: 'textarea', label: 'Why do you want to join Operation Smile?', required: true, minLength: 5 },
   ],
   'school-show': [
-    { key: 'full_name', kind: 'text', label: 'Full Name', required: true, placeholder: 'Your full name' },
-    {
-      key: 'homeroom',
-      kind: 'select',
-      label: 'Homeroom',
-      required: true,
-      options: [...HOMEROOM_OPTIONS],
-    },
     {
       key: 'stage_crew_before',
       kind: 'radio',
