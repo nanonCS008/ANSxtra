@@ -116,7 +116,6 @@ export default function JoinPage() {
   const [submitAttempted, setSubmitAttempted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<{ code?: string; message: string } | null>(null)
-  const [videoLinkVerified, setVideoLinkVerified] = useState(false)
   const [userProfile, setUserProfile] = useState<{ year_group: number } | null>(null)
   const [profileError, setProfileError] = useState<string | null>(null)
 
@@ -218,11 +217,6 @@ export default function JoinPage() {
         const parsed = parseStageCrewVideoLink(link)
         if (!parsed.ok) {
           newErrors[field.key] = parsed.error
-          continue
-        }
-        if (!videoLinkVerified) {
-          newErrors[field.key] =
-            'Please wait for link verification (click outside the field after pasting), or fix sharing if verification fails.'
         }
         continue
       }
@@ -250,7 +244,7 @@ export default function JoinPage() {
     }
 
     return newErrors
-  }, [responses, fields, state, clubId, videoLinkVerified])
+  }, [responses, fields, state, clubId])
 
   const validationErrors = useMemo(() => getValidationErrors(), [getValidationErrors])
   const canSubmit =
@@ -587,11 +581,9 @@ export default function JoinPage() {
             required={required}
             value={linkValue}
             onChange={(next) => {
-              setVideoLinkVerified(false)
               setResponses((prev) => ({ ...prev, [field.key]: next }))
             }}
             onBlur={() => setTouched((prev) => ({ ...prev, [field.key]: true }))}
-            onVerifiedChange={setVideoLinkVerified}
             error={error}
           />
         </div>

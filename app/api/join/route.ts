@@ -7,7 +7,6 @@ import crypto from 'crypto'
 import { notifyApplicationCountMilestones } from '@/lib/applicationAdminEmails'
 import { sendStudentApplicationReceivedEmail } from '@/lib/email/sendApplicationReceivedEmail'
 import { parseStageCrewVideoLink } from '@/lib/stageCrewVideoLink'
-import { verifyStageCrewVideoLink } from '@/lib/verifyStageCrewVideoLink'
 import { getClubFormFields } from '@/lib/clubFormFields'
 import { getExternalSignupMessage, isExternalSignupClub } from '@/lib/externalSignupClubs'
 
@@ -272,15 +271,6 @@ export async function POST(request: NextRequest) {
         if (!parsedVideo?.ok) {
           schoolShowInvalid = true
           insertErrors.push({ clubId, error: { code: 'INVALID_VIDEO' } })
-        } else {
-          const accessible = await verifyStageCrewVideoLink(parsedVideo)
-          if (!accessible.ok) {
-            schoolShowInvalid = true
-            insertErrors.push({
-              clubId,
-              error: { code: 'INVALID_VIDEO', message: accessible.error },
-            })
-          }
         }
         if (!schoolShowInvalid) {
           for (const field of getClubFormFields(clubId)) {

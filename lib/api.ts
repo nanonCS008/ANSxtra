@@ -144,7 +144,7 @@ export const APPLY_ERROR_MESSAGES: Record<string, string> = {
     'Applications for this club are run outside ANSxtra. Please check with the club or school for how to sign up.',
   INVALID_RESPONSES: 'Please check your answers and fill in all required fields.',
   INVALID_VIDEO:
-    'Please add a valid public YouTube or Google Drive link to your 1–2 minute introduction video.',
+    'Please paste a valid YouTube or Google Drive link to your 1–2 minute video explaining why you want to join Stage Crew.',
 }
 
 export function getApplyErrorMessage(code: string, message?: string): string {
