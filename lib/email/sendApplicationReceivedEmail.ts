@@ -1,5 +1,6 @@
 import clubs from '@/data/clubs.json';
 import { getApplicationResponseDisplayRows } from '@/lib/clubFormFields';
+import { buildSchoolShowStageCrewDisclaimerHtml } from '@/lib/email/schoolShowEmailDisclaimer';
 import { buildStudentApplicationReceivedEmailHtml } from '@/lib/email/studentApplicationReceivedHtml';
 import { formatResendError, getPublicSiteUrl, getResendClient, getResendFrom } from '@/lib/resendConfig';
 
@@ -28,6 +29,7 @@ export async function sendStudentApplicationReceivedEmail(params: {
     return {
       clubName: club?.name ?? cid.replace(/-/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase()),
       rows: getApplicationResponseDisplayRows(params.responses, cid),
+      disclaimerHtml: cid === 'school-show' ? buildSchoolShowStageCrewDisclaimerHtml() : undefined,
     };
   });
 

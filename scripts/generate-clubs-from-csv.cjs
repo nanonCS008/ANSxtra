@@ -18,7 +18,8 @@ const PUBLIC_CLUBS = path.join(PROJECT_ROOT, 'public', 'clubs', 'ANSXtra')
 /** CSV club_name -> { id, imageFolder } for routing and image discovery */
 const CLUB_NAME_TO_META = {
   'Operation Smile': { id: 'operation-smile', imageFolder: 'Operation Smile' },
-  'School Show': { id: 'school-show', imageFolder: 'School Show' },
+  'School Show': { id: 'school-show', imageFolder: 'School Show', displayName: 'School Show Stage Crew' },
+  'School Show Stage Crew': { id: 'school-show', imageFolder: 'School Show', displayName: 'School Show Stage Crew' },
   'MUN': { id: 'mun', imageFolder: 'MUN' },
   'SPARK Club': { id: 'spark-club', imageFolder: 'SPARK Club' },
   'Interact Club': { id: 'interact-club', imageFolder: 'Interact Club' },

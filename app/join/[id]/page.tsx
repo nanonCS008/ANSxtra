@@ -9,7 +9,9 @@ import { RadioGroup } from '@/components/ui/RadioGroup'
 import { getApplyErrorMessage, submitApplication } from '@/lib/api'
 import { saveApplication, type ClubApplicationPayload } from '@/lib/applications'
 import { getClubFormFields } from '@/lib/clubFormFields'
-import { isExternalSignupClub } from '@/lib/externalSignupClubs'
+import { SchoolShowStageCrewNotice } from '@/components/clubs/SchoolShowStageCrewNotice'
+import { STAGE_CREW_TEAM_OPTIONS } from '@/lib/schoolShowStageCrew'
+import { getExternalSignupMessage, isExternalSignupClub } from '@/lib/externalSignupClubs'
 import { isValidStoredDobIso } from '@/lib/dmyDate'
 import { TEDX_ARCHIVE_ITEMS } from '@/components/clubs/TEDxLivestreamArchive'
 import { DmyDateField } from '@/components/join/DmyDateField'
@@ -27,8 +29,11 @@ type FieldKind =
   | 'date'
   | 'dmyDate'
   | 'radio'
+  | 'select'
   | 'checkbox'
   | 'checkboxGroup'
+  | 'file'
+  | 'video'
 type ResponseValue = string | boolean | string[]
 
 type FieldDef = {
@@ -37,7 +42,7 @@ type FieldDef = {
   label: string
   required: boolean | ((state: { responses: Record<string, ResponseValue> }) => boolean)
   visible?: (state: { responses: Record<string, ResponseValue> }) => boolean
-  options?: string[]
+  options?: string[] | ((state: { responses: Record<string, ResponseValue> }) => string[])
   minLength?: number
   helper?: ReactNode
   placeholder?: string
@@ -63,8 +68,8 @@ type JoinFormCopy = {
 const JOIN_FORM_COPY: Partial<Record<string, JoinFormCopy>> = {
   'school-show': {
     pageDescription:
-      'Apply for the School Show stage crew. This form may gain more questions soon — if you’re unsure, check with the production team before submitting.',
-    questionsIntro: 'Stage crew application',
+      'Apply for the School Show Stage Crew. Cast and performer roles use separate auditions — this form is for backstage and production teams only.',
+    questionsIntro: 'School Show Stage Crew application',
   },
   mun: {
     pageDescription:
@@ -78,6 +83,21 @@ const JOIN_FORM_COPY: Partial<Record<string, JoinFormCopy>> = {
 
 function getClubFields(clubId: string): FieldDef[] {
   const base = getClubFormFields(clubId)
+
+  if (clubId === 'school-show') {
+    return base.map((f) => {
+      if (f.key !== 'preferred_team_choice_2') return f
+      return {
+        ...f,
+        options: ({ responses }: { responses: Record<string, ResponseValue> }) => {
+          const first = typeof responses.preferred_team_choice_1 === 'string'
+            ? responses.preferred_team_choice_1
+            : ''
+          return STAGE_CREW_TEAM_OPTIONS.filter((team) => team !== first)
+        },
+      }
+    })
+  }
 
   // Small compatibility shim: only show the "Other" textbox when "Other" is selected.
   if (clubId === 'spark-club') {
@@ -143,6 +163,13 @@ export default function JoinPage() {
 
     fetchUserProfile()
   }, [session, status, router, fetchUserProfile])
+
+  useEffect(() => {
+    if (clubId !== 'school-show' || !session?.user?.name) return
+    const name = session.user.name.trim()
+    if (!name) return
+    setResponses((prev) => (prev.full_name ? prev : { ...prev, full_name: name }))
+  }, [clubId, session?.user?.name])
 
   useEffect(() => {
     const blockIfAlreadyApplied = async () => {
@@ -213,8 +240,20 @@ export default function JoinPage() {
       }
     }
 
+    if (clubId === 'school-show') {
+      const team1 = typeof responses.preferred_team_choice_1 === 'string'
+        ? responses.preferred_team_choice_1.trim()
+        : ''
+      const team2 = typeof responses.preferred_team_choice_2 === 'string'
+        ? responses.preferred_team_choice_2.trim()
+        : ''
+      if (team1 && team2 && team1 === team2) {
+        newErrors.preferred_team_choice_2 = 'Please choose a different team for your second preference'
+      }
+    }
+
     return newErrors
-  }, [responses, fields, state])
+  }, [responses, fields, state, clubId])
 
   const validationErrors = useMemo(() => getValidationErrors(), [getValidationErrors])
   const canSubmit = club.accepting && !isSubmitting && Object.keys(validationErrors).length === 0
@@ -282,10 +321,7 @@ export default function JoinPage() {
       <div className="min-h-screen bg-brand-deep pt-24 pb-16">
         <Container size="narrow">
           <h1 className="text-2xl font-bold text-white mb-3">External sign-up</h1>
-          <p className="text-white/70 text-sm leading-relaxed mb-6">
-            Student Council does not use this website for applications. Please check with your Form Tutor, House
-            Leader, or the Student Council for how to get involved.
-          </p>
+          <p className="text-white/70 text-sm leading-relaxed mb-6">{getExternalSignupMessage(club.id)}</p>
           <Link href={`/clubs/${club.id}`}>
             <Button>Back to {club.displayName ?? club.name}</Button>
           </Link>
@@ -393,6 +429,48 @@ export default function JoinPage() {
     const error = showErrorFor(field.key) ? validationErrors[field.key] : undefined
     const required = isRequired(field, state)
     const v = responses[field.key]
+    const resolvedOptions =
+      typeof field.options === 'function' ? field.options(state) : (field.options ?? [])
+
+    if (field.kind === 'select') {
+      return (
+        <div ref={(el) => { fieldRefs.current[field.key] = el }} className="w-full">
+          <label htmlFor={field.key} className="block text-sm font-medium text-white/90 mb-2">
+            {field.label}
+            {required && <span className="text-brand-pink ml-1">*</span>}
+          </label>
+          <select
+            id={field.key}
+            value={typeof v === 'string' ? v : ''}
+            onChange={(e) => {
+              setResponses((prev) => ({ ...prev, [field.key]: e.target.value }))
+              setTouched((prev) => ({ ...prev, [field.key]: true }))
+            }}
+            onBlur={() => setTouched((prev) => ({ ...prev, [field.key]: true }))}
+            className={cn(
+              'w-full min-h-[44px] px-4 py-3 rounded-xl',
+              'bg-brand-navy/80 border border-white/10',
+              'text-white text-sm',
+              'focus:outline-none focus:border-brand-pink/50 focus:ring-2 focus:ring-brand-pink/20',
+              'transition-all duration-200',
+              '[color-scheme:dark]',
+              error && 'border-red-500/50 focus:border-red-500 focus:ring-red-500/20'
+            )}
+            required={required}
+          >
+            <option value="" disabled>
+              Select your homeroom
+            </option>
+            {resolvedOptions.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+          {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+        </div>
+      )
+    }
 
     if (field.kind === 'radio') {
       return (
@@ -400,10 +478,20 @@ export default function JoinPage() {
           <RadioGroup
             label={field.label}
             name={field.key}
-            options={(field.options ?? []).map((opt) => ({ value: opt, label: opt }))}
+            options={resolvedOptions.map((opt) => ({ value: opt, label: opt }))}
             value={typeof v === 'string' ? v : ''}
             onChange={(value) => {
-              setResponses((prev) => ({ ...prev, [field.key]: value }))
+              setResponses((prev) => {
+                const next = { ...prev, [field.key]: value }
+                if (
+                  clubId === 'school-show' &&
+                  field.key === 'preferred_team_choice_1' &&
+                  prev.preferred_team_choice_2 === value
+                ) {
+                  delete next.preferred_team_choice_2
+                }
+                return next
+              })
               setTouched((prev) => ({ ...prev, [field.key]: true }))
             }}
             error={error}
@@ -419,7 +507,7 @@ export default function JoinPage() {
           <CheckboxGroup
             label={field.label}
             name={field.key}
-            options={(field.options ?? []).map((opt) => ({ value: opt, label: opt }))}
+            options={resolvedOptions.map((opt) => ({ value: opt, label: opt }))}
             value={Array.isArray(v) ? v : []}
             onChange={(value) => {
               setResponses((prev) => ({ ...prev, [field.key]: value }))
@@ -631,6 +719,10 @@ export default function JoinPage() {
                 <span className="text-white/85 font-medium">{session.user?.email ?? 'Unknown email'}</span>
               </p>
             </Card>
+
+            {club.id === 'school-show' && (
+              <SchoolShowStageCrewNotice className="mb-6" compact />
+            )}
 
             {club.id === 'tedx' && (
               <div className="mb-6 rounded-xl border border-[#c92a2a]/30 bg-[#c92a2a]/5 px-4 py-3">

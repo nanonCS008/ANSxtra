@@ -40,45 +40,11 @@ patch('interact-club', (c) => {
 const studentCouncil = {
   id: 'student-council',
   name: 'Student Council',
-  tagline:
-    'Lead. Represent. Create change. Be the voice of your peers and help shape school life.',
-  summary:
-    'A student-led leadership body representing student voices and driving positive change across the school community.',
-  description: `About the Club
+  tagline: 'Representing student voices and improving school life at ANS.',
+  summary: 'Student voice, school events, and student-led projects at ANS.',
+  description: `Student Council at ANS is the group that takes student concerns to staff. Year and house reps bring feedback from their year or house into meetings on Fridays at lunch in the boardroom.
 
-Student Council is a student-led leadership body that represents the voices, ideas, and interests of the school community. Members work closely with students, teachers, and school leaders to improve school life, organise meaningful events, support community initiatives, and ensure student voices are heard.
-
-This is more than just meetings—Student Council is about leadership, responsibility, and creating real impact within the school.
-
-What You'll Do
-
-• Represent your year group, house, or classmates
-• Share student ideas, feedback, and concerns with school leaders
-• Help organise school events, campaigns, and fundraising activities
-• Support school projects, service initiatives, and community outreach
-• Work with other student leaders to improve school life
-
-What We're Looking For
-
-Student Council members should be:
-
-• Responsible and dependable
-• Strong communicators
-• Team players with leadership potential
-• Service-minded and willing to help others
-• Creative, proactive, and ready to take initiative
-
-Why Join?
-
-By joining Student Council, you'll:
-
-• Develop leadership, teamwork, and communication skills
-• Build confidence through real responsibility
-• Create friendships with like-minded student leaders
-• Gain valuable experience for university applications and future leadership roles
-• Make a lasting impact on the school community
-
-Open to students who want to lead, serve, and make a difference.`,
+Members help plan school events and fundraisers—booking, publicity, roles, and follow-through—not only the day of the event. The Council also meets with teachers and school leadership when something needs action at school level.`,
   meetingDay: 'Friday',
   meetingTime: 'Lunch break',
   location: 'Boardroom',
@@ -87,7 +53,7 @@ Open to students who want to lead, serve, and make a difference.`,
   yearGroupMax: 13,
   leaders: [],
   teachers: [{ name: 'Mr Delaney', email: '' }],
-  contact: 'Speak with Mr Delaney or your Form Tutor for how to join Student Council (sign-up is outside ANSxtra).',
+  contact: '',
   specialConditions: null,
   questions: [],
   roles: [],

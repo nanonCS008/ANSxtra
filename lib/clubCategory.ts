@@ -16,7 +16,7 @@ const CATEGORY_BY_ID: Record<string, ClubCategory> = {
   tedx: 'academic',
   'school-show': 'performing-arts',
   'duke-of-edinburgh': 'leadership',
-  'interact-club': 'leadership',
+  'interact-club': 'charity',
   'student-council': 'leadership',
   'enterprise-club': 'other',
 }

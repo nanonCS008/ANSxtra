@@ -21,6 +21,7 @@ function escapeHtml(text: string): string {
 export type ReceivedSection = {
   clubName: string;
   rows: ApplicationResponseDisplayRow[];
+  disclaimerHtml?: string;
 };
 
 export type StudentApplicationReceivedEmailParams = {
@@ -79,12 +80,18 @@ export function buildStudentApplicationReceivedEmailHtml(p: StudentApplicationRe
   const sectionsHtml = p.sections
     .map((sec, i) => {
       const top = i === 0 ? '' : 'margin-top:28px;';
+      const disclaimer = sec.disclaimerHtml
+        ? `<div style="margin-top:16px;padding:14px 16px;border-radius:12px;background:#fef9c3;border:1px solid #facc15;">
+            ${sec.disclaimerHtml}
+          </div>`
+        : '';
       return `
         <div style="${top}">
           <h2 style="margin:0 0 10px;font-size:16px;font-weight:800;color:${SIDEBAR};letter-spacing:-0.01em;">
             ${escapeHtml(sec.clubName)}
           </h2>
           ${qaBlock(sec.rows)}
+          ${disclaimer}
         </div>`;
     })
     .join('');

@@ -3,7 +3,7 @@ const CLUB_TYPE_BY_ID: Record<string, string> = {
   'school-show': 'Performing Arts',
   mun: 'Academic',
   'spark-club': 'Charity',
-  'interact-club': 'Leadership',
+  'interact-club': 'Charity',
   'eco-committee': 'Charity',
   'duke-of-edinburgh': 'Leadership',
   'unicef-ambassador': 'Charity',

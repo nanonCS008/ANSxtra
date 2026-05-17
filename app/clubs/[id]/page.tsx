@@ -4,9 +4,11 @@ import { ImageLightbox } from '@/components/clubs/ImageLightbox'
 import { PhotoCarousel } from '@/components/clubs/PhotoCarousel'
 import { DukeHeroSilhouette } from '@/components/clubs/DukeHeroSilhouette'
 import { DukeJourneyMap } from '@/components/clubs/DukeJourneyMap'
+import { SchoolShowStageCrewNotice } from '@/components/clubs/SchoolShowStageCrewNotice'
 import { SchoolShowThemeSelector } from '@/components/clubs/SchoolShowThemeSelector'
 import { TEDxLivestreamArchive } from '@/components/clubs/TEDxLivestreamArchive'
 import { ThemeEffectsLayer } from '@/components/clubs/ThemeEffectsLayer'
+import { DukeMeetingPoints } from '@/components/clubs/DukeMeetingPoints'
 import { InteractClubDetail } from '@/components/clubs/InteractClubDetail'
 import { Button } from '@/components/ui/Button'
 import { Container } from '@/components/ui/Container'
@@ -20,7 +22,7 @@ import {
 } from '@/lib/clubCategory'
 import { getClubType } from '@/lib/clubTypes'
 import { getClubById } from '@/lib/data'
-import { isExternalSignupClub } from '@/lib/externalSignupClubs'
+import { getExternalSignupMessage, isExternalSignupClub } from '@/lib/externalSignupClubs'
 import { truncateAtSentence } from '@/lib/textUtils'
 import { cn } from '@/lib/utils/cn'
 import {
@@ -199,6 +201,7 @@ export default function ClubDetailPage() {
   const clubId = params.id as string
   const club = getClubById(clubId)
   const isInteract = clubId === 'interact-club'
+  const isStudentCouncil = clubId === 'student-council'
   const { status: authStatus } = useSession()
   const [alreadyApplied, setAlreadyApplied] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -228,8 +231,6 @@ export default function ClubDetailPage() {
 
     async function run() {
       if (authStatus !== 'authenticated') return
-      if (isSchoolShow) return
-
       try {
         const res = await fetch('/api/applications', { cache: 'no-store' })
         if (!res.ok) return
@@ -245,7 +246,7 @@ export default function ClubDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [authStatus, isSchoolShow, clubId])
+  }, [authStatus, clubId])
 
   useEffect(() => {
     if (isDuke) setDoeLevel(getStoredDoeLevel())
@@ -645,6 +646,16 @@ export default function ClubDetailPage() {
         )}
       </section>
 
+      {isDuke && doeTheme && (
+        <section className="border-b border-white/10 bg-brand-deep" aria-label="Meeting points notice">
+          <Container className="py-3 md:py-3">
+            <div className="mx-auto max-w-[1150px]">
+              <DukeMeetingPoints accentHex={doeTheme.accent} variant="notice" />
+            </div>
+          </Container>
+        </section>
+      )}
+
       {/* Non-Duke: details, About, body, Gallery, Contact */}
       {!isDuke && (
         <section className="content-visibility-auto border-t border-white/10 bg-brand-deep scroll-mt-header">
@@ -736,11 +747,15 @@ export default function ClubDetailPage() {
               </div>
             )}
             {/* Special Notice */}
-            {club.specialConditions && (
-              <div className="mb-5 rounded-lg p-3 border border-amber-500/20 bg-amber-500/5">
-                <h3 className="text-white font-semibold mb-1.5 text-sm">Special Notice</h3>
-                <p className="text-white/75 text-sm whitespace-pre-line leading-relaxed">{club.specialConditions}</p>
-              </div>
+            {isSchoolShow ? (
+              <SchoolShowStageCrewNotice className="mb-5" />
+            ) : (
+              club.specialConditions && (
+                <div className="mb-5 rounded-lg p-3 border border-amber-500/20 bg-amber-500/5">
+                  <h3 className="text-white font-semibold mb-1.5 text-sm">Special Notice</h3>
+                  <p className="text-white/75 text-sm whitespace-pre-line leading-relaxed">{club.specialConditions}</p>
+                </div>
+              )
             )}
             {/* TEDx: Past Speakers / Livestream Archive */}
             {club.id === 'tedx' && <TEDxLivestreamArchive />}
@@ -779,10 +794,7 @@ export default function ClubDetailPage() {
             <div className="mx-auto max-w-[1150px]">
             <h3 className="text-sm font-bold text-white mb-2 tracking-tight">How to Join</h3>
             {isExternalSignupClub(club.id) ? (
-              <p className="text-white/70 text-sm">
-                Student Council recruitment is run outside ANSxtra. Please check with your Form Tutor, House Leader,
-                or the Student Council for how to get involved.
-              </p>
+              <p className="text-white/70 text-sm">{getExternalSignupMessage(club.id)}</p>
             ) : club.accepting ? (
               <>
                 <p className="text-white/70 text-sm mb-3">Click Apply to submit an application.</p>
@@ -800,15 +812,23 @@ export default function ClubDetailPage() {
             <div className="mt-4 pt-4 border-t border-white/10">
               <h4 className="text-[11px] font-semibold text-white/70 uppercase tracking-wide mb-2">Contact</h4>
               {club.leaders.length > 0 && (
-                <div className="space-y-1.5 mb-2">
+                <div className="space-y-2 mb-2">
                   {club.leaders.map((leader, i) => (
-                    <div key={i} className="flex items-center gap-2">
+                    <div key={i} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0" style={{ backgroundColor: `${effectiveTintHex}50` }}>
                         {leader.name[0]}
                       </span>
                       <span className="text-white/90 text-sm font-medium">{leader.name}</span>
                       {leader.student_id && <span className="text-white/50 text-xs font-mono">#{leader.student_id}</span>}
                       {leader.year && <span className="text-white/40 text-xs">({leader.year})</span>}
+                      {isSchoolShow && leader.email && (
+                        <a
+                          href={`mailto:${leader.email}`}
+                          className="text-sm text-white/70 hover:text-white underline-offset-2 hover:underline"
+                        >
+                          {leader.email}
+                        </a>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -819,7 +839,9 @@ export default function ClubDetailPage() {
                   {club.teachers.map((t) => t.name).join(', ')}
                 </div>
               )}
-              {club.contact && <p className="text-white/65 text-sm whitespace-pre-line mt-2">{club.contact}</p>}
+              {club.contact && (
+                <p className="text-white/65 text-sm whitespace-pre-line mt-2">{club.contact}</p>
+              )}
             </div>
             </div>
           </Container>
@@ -929,16 +951,12 @@ export default function ClubDetailPage() {
                 <div className="grid grid-cols-2 gap-1.5">
                   {club.meetingDay && <StatCard label="Day" value={club.meetingDay} icon={MEETING_ICONS.day} tintHex={effectiveTintHex} />}
                   {club.meetingTime && <StatCard label="Time" value={club.meetingTime} icon={MEETING_ICONS.time} tintHex={effectiveTintHex} />}
-                  {club.location && <StatCard label="Location" value={club.location} icon={MEETING_ICONS.location} tintHex={effectiveTintHex} />}
                   {club.yearGroup && <StatCard label="Year group" value={club.yearGroup} icon={MEETING_ICONS.year} tintHex={effectiveTintHex} />}
                 </div>
                 <div className="rounded-xl p-4 border border-white/10 bg-white/[0.04]">
                   <h3 className="text-sm font-bold text-white mb-2 tracking-tight">How to Join</h3>
                   {isExternalSignupClub(club.id) ? (
-                    <p className="text-white/70 text-sm">
-                      Student Council recruitment is run outside ANSxtra. Please check with your Form Tutor, House
-                      Leader, or the Student Council for how to get involved.
-                    </p>
+                    <p className="text-white/70 text-sm">{getExternalSignupMessage(club.id)}</p>
                   ) : club.accepting ? (
                     <>
                     <p className="text-white/70 text-sm mb-3">Click Apply to submit an application.</p>
@@ -1009,10 +1027,7 @@ export default function ClubDetailPage() {
             </p>
           </div>
           {isExternalSignupClub(club.id) ? (
-            <span className="text-white/60 text-sm">
-              Recruitment is run outside this website. Please check with your Form Tutor, House Leader, or the
-              Student Council for how to get involved.
-            </span>
+            <span className="text-white/60 text-sm">{getExternalSignupMessage(club.id)}</span>
           ) : alreadyApplied ? (
             <Button disabled size="lg">Applied</Button>
           ) : club.accepting ? (

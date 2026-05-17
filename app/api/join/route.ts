@@ -6,7 +6,7 @@ import clubs from '@/data/clubs.json'
 import crypto from 'crypto'
 import { notifyApplicationCountMilestones } from '@/lib/applicationAdminEmails'
 import { sendStudentApplicationReceivedEmail } from '@/lib/email/sendApplicationReceivedEmail'
-import { isExternalSignupClub } from '@/lib/externalSignupClubs'
+import { getExternalSignupMessage, isExternalSignupClub } from '@/lib/externalSignupClubs'
 
 function getStudentIdFromEmail(email: string): string | null {
   const normalized = email.trim().toLowerCase()
@@ -301,11 +301,11 @@ export async function POST(request: NextRequest) {
         )
       }
       if (first?.code === 'APPLICATIONS_DISABLED') {
+        const disabledClubId = insertErrors[0]?.clubId ?? 'student-council'
         return NextResponse.json(
           {
             code: 'APPLICATIONS_DISABLED',
-            message:
-              'Applications for this club are run outside ANSxtra. Please check with the club or school for how to sign up.',
+            message: getExternalSignupMessage(disabledClubId),
           },
           { status: 403 }
         )

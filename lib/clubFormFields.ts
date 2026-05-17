@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 
 import { formatDobIsoForDisplay } from '@/lib/dmyDate'
+import { HOMEROOM_OPTIONS } from '@/lib/homeroomOptions'
+import { STAGE_CREW_TEAM_OPTIONS } from '@/lib/schoolShowStageCrew'
 
 export type FieldKind =
   | 'text'
@@ -8,8 +10,12 @@ export type FieldKind =
   | 'date'
   | 'dmyDate'
   | 'radio'
+  | 'select'
   | 'checkbox'
   | 'checkboxGroup'
+  /** Reserved — wire up upload UI when video submissions are enabled */
+  | 'file'
+  | 'video'
 
 export type FieldDef = {
   key: string
@@ -31,13 +37,69 @@ const FIELDS_BY_CLUB: Record<string, FieldDef[]> = {
     { key: 'why_join', kind: 'textarea', label: 'Why do you want to join Operation Smile?', required: true, minLength: 5 },
   ],
   'school-show': [
+    { key: 'full_name', kind: 'text', label: 'Full Name', required: true, placeholder: 'Your full name' },
     {
-      key: 'stage_crew_interest',
+      key: 'homeroom',
+      kind: 'select',
+      label: 'Homeroom',
+      required: true,
+      options: [...HOMEROOM_OPTIONS],
+    },
+    {
+      key: 'stage_crew_before',
+      kind: 'radio',
+      label: 'Have you been in Stage Crew before?',
+      required: true,
+      options: ['Yes', 'No'],
+    },
+    {
+      key: 'why_join_stage_crew',
       kind: 'textarea',
-      label: 'Why would you like to join the School Show stage crew?',
+      label: 'Why do you want to join the Stage Crew?',
       required: true,
       minLength: 5,
-      placeholder: 'Write your answer… (more questions may be added to this form soon.)',
+    },
+    {
+      key: 'school_events_experience',
+      kind: 'textarea',
+      label: 'Do you have experience helping school events? (e.g. Interact, Operation Smile)',
+      required: true,
+      minLength: 5,
+    },
+    {
+      key: 'skills_for_team',
+      kind: 'textarea',
+      label: 'What skills do you have that would help the team?',
+      required: true,
+      minLength: 5,
+    },
+    {
+      key: 'preferred_team_choice_1',
+      kind: 'radio',
+      label: 'Preferred Team (Choice 1)',
+      required: true,
+      options: [...STAGE_CREW_TEAM_OPTIONS],
+    },
+    {
+      key: 'preferred_team_choice_2',
+      kind: 'radio',
+      label: 'Preferred Team (Choice 2)',
+      required: true,
+      options: [...STAGE_CREW_TEAM_OPTIONS],
+    },
+    {
+      key: 'also_cast_member',
+      kind: 'radio',
+      label: 'Are you also signing up as a cast member?',
+      required: true,
+      options: ['Yes', 'No'],
+    },
+    {
+      key: 'additional_comments',
+      kind: 'textarea',
+      label: 'Additional comments (optional)',
+      required: false,
+      placeholder: 'Anything else you would like us to know…',
     },
   ],
   'spark-club': [

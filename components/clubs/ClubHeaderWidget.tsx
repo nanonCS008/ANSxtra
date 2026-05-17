@@ -176,10 +176,16 @@ function ImpactFocus({ tintHex, className }: { tintHex: string; className?: stri
   )
 }
 
-const SHOW_ROLES = ['Acting', 'Singing', 'Dancing', 'Tech crew', 'Directing', 'Design']
+const STAGE_CREW_TEAMS = [
+  'Props and Set',
+  'Snacks and Refreshments',
+  'Merchandise',
+  'Tickets',
+  'Lighting and Sound',
+]
 function RoleSpotlight({ tintHex, className }: { tintHex: string; className?: string }) {
   const [i, setI] = useState(0)
-  const role = SHOW_ROLES[i % SHOW_ROLES.length]
+  const team = STAGE_CREW_TEAMS[i % STAGE_CREW_TEAMS.length]
   return (
     <button
       type="button"
@@ -187,9 +193,9 @@ function RoleSpotlight({ tintHex, className }: { tintHex: string; className?: st
       className={cn(CARD_BASE, CARD_PADDING, 'w-full text-left transition-all hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2', className)}
       style={{ borderColor: `${tintHex}40`, backgroundColor: 'rgba(255,255,255,0.03)' }}
     >
-      <p className="text-[11px] uppercase tracking-widest font-semibold mb-2" style={{ color: tintHex }}>Join the cast</p>
-      <p className="text-white font-semibold text-lg">{role}</p>
-      <p className="text-white/40 text-xs mt-3">Tap to explore roles →</p>
+      <p className="text-[11px] uppercase tracking-widest font-semibold mb-2" style={{ color: tintHex }}>Stage crew teams</p>
+      <p className="text-white font-semibold text-lg">{team}</p>
+      <p className="text-white/40 text-xs mt-3">Tap to explore teams →</p>
     </button>
   )
 }
