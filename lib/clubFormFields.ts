@@ -192,11 +192,97 @@ function humanizeResponseKey(key: string): string {
     .replace(/\b\w/g, (m) => m.toUpperCase())
 }
 
-function formatResponseValue(val: unknown): string {
-  if (val == null) return ''
-  if (typeof val === 'object' && !Array.isArray(val)) return JSON.stringify(val)
-  if (Array.isArray(val)) return val.map((v) => String(v)).join(', ')
-  return String(val)
+function parseJsonArrayString(raw: string): unknown[] | null {
+  const trimmed = raw.trim()
+  if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) return null
+  try {
+    const parsed = JSON.parse(trimmed) as unknown
+    return Array.isArray(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function listFromResponseValue(val: unknown): string[] {
+  if (Array.isArray(val)) {
+    return val.map((item) => String(item).trim()).filter(Boolean)
+  }
+  if (typeof val === 'string') {
+    const parsed = parseJsonArrayString(val)
+    if (parsed) {
+      return parsed.map((item) => String(item).trim()).filter(Boolean)
+    }
+  }
+  return []
+}
+
+function formatResponseForDisplay(
+  val: unknown,
+  field?: FieldDef,
+  options?: { emptyAs?: string }
+): string {
+  const empty = options?.emptyAs ?? '—'
+
+  if (val == null || val === '') return empty
+
+  if (field?.kind === 'video' && typeof val === 'string') {
+    const url = val.trim()
+    return url || empty
+  }
+
+  if (field?.kind === 'checkbox') {
+    const s = String(val).toLowerCase()
+    const yes = val === true || s === 'true' || s === '1' || s === 'yes'
+    return yes ? 'Yes' : 'No'
+  }
+
+  if (field?.kind === 'checkboxGroup') {
+    const items = listFromResponseValue(val)
+    return items.length > 0 ? items.join(', ') : empty
+  }
+
+  if (field?.kind === 'dmyDate' || field?.kind === 'date') {
+    const t = typeof val === 'string' ? val.trim() : ''
+    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) {
+      const formatted = formatDobIsoForDisplay(t)
+      if (field.kind === 'dmyDate') return `${formatted} (CE)`
+      return formatted
+    }
+  }
+
+  if (typeof val === 'boolean') {
+    return val ? 'Yes' : 'No'
+  }
+
+  if (Array.isArray(val)) {
+    const items = listFromResponseValue(val)
+    return items.length > 0 ? items.join(', ') : empty
+  }
+
+  if (typeof val === 'string') {
+    const trimmed = val.trim()
+    if (!trimmed) return empty
+
+    const asList = listFromResponseValue(trimmed)
+    if (parseJsonArrayString(trimmed)) {
+      return asList.length > 0 ? asList.join(', ') : empty
+    }
+
+    return trimmed
+  }
+
+  if (typeof val === 'number') return String(val)
+
+  if (typeof val === 'object') {
+    return empty
+  }
+
+  const text = String(val).trim()
+  return text || empty
+}
+
+function formatResponseForExport(val: unknown, field?: FieldDef): string {
+  return formatResponseForDisplay(val, field, { emptyAs: '' })
 }
 
 /**
@@ -232,36 +318,7 @@ function orderedResponseKeys(o: Record<string, unknown>, clubId: string): string
 }
 
 function formatResponseForStudentEmail(val: unknown, field?: FieldDef): string {
-  if (val == null || val === '') return '—'
-  if (field?.kind === 'video' && typeof val === 'string' && val.trim()) {
-    return val.trim()
-  }
-  if (field?.kind === 'checkbox') {
-    const s = String(val).toLowerCase()
-    const yes = val === true || s === 'true' || s === '1' || s === 'yes'
-    return yes ? 'Yes' : 'No'
-  }
-  if (field?.kind === 'dmyDate' || field?.kind === 'date') {
-    const t = typeof val === 'string' ? val.trim() : ''
-    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) {
-      const formatted = formatDobIsoForDisplay(t)
-      if (field.kind === 'dmyDate') return `${formatted} (CE)`
-      return formatted
-    }
-  }
-  if (typeof val === 'string') {
-    const t = val.trim()
-    if (t.startsWith('[') && t.endsWith(']')) {
-      try {
-        const p = JSON.parse(t) as unknown
-        if (Array.isArray(p)) return p.map((x) => String(x)).join(', ')
-      } catch {
-        /* fall through */
-      }
-    }
-  }
-  if (Array.isArray(val)) return val.map((x) => String(x)).join(', ')
-  return formatResponseValue(val)
+  return formatResponseForDisplay(val, field, { emptyAs: '—' })
 }
 
 export type ApplicationResponseDisplayRow = {
@@ -299,14 +356,7 @@ export function getResponseValueForExport(responses: unknown, clubId: string, ke
   const o = parseResponsesObject(responses)
   if (!o || !(key in o)) return ''
   const field = getClubFormFields(clubId).find((f) => f.key === key)
-  if (field?.kind === 'video' && typeof o[key] === 'string') {
-    return o[key].trim()
-  }
-  if (field?.kind === 'dmyDate' && typeof o[key] === 'string') {
-    const t = o[key].trim()
-    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return `${formatDobIsoForDisplay(t)} (CE)`
-  }
-  return formatResponseValue(o[key])
+  return formatResponseForExport(o[key], field)
 }
 
 export function formatApplicationResponsesForExport(responses: unknown, clubId: string): string {
@@ -319,7 +369,7 @@ export function formatApplicationResponsesForExport(responses: unknown, clubId: 
     return trimmed
   }
   if (typeof responses !== 'object') return String(responses)
-  if (Array.isArray(responses)) return JSON.stringify(responses)
+  if (Array.isArray(responses)) return ''
 
   const o = responses as Record<string, unknown>
   const fields = getClubFormFields(clubId)

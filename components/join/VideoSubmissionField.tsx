@@ -7,9 +7,11 @@ import {
   APPLICATION_VIDEO_MAX_SECONDS,
   APPLICATION_VIDEO_MIN_SECONDS,
   formatVideoDuration,
+  inferVideoContentType,
+  isVideoFile,
 } from '@/lib/applicationVideo'
 import { cn } from '@/lib/utils/cn'
-import { useCallback, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 
 type VideoSubmissionFieldProps = {
   fieldKey: string
@@ -20,6 +22,7 @@ type VideoSubmissionFieldProps = {
   value: string
   onChange: (publicUrl: string) => void
   onBlur?: () => void
+  onUploadingChange?: (uploading: boolean) => void
   error?: string
 }
 
@@ -54,6 +57,7 @@ export function VideoSubmissionField({
   value,
   onChange,
   onBlur,
+  onUploadingChange,
   error,
 }: VideoSubmissionFieldProps) {
   const inputId = useId()
@@ -67,6 +71,22 @@ export function VideoSubmissionField({
   const [uploadProgress, setUploadProgress] = useState<string | null>(null)
 
   const displayError = error ?? localError
+
+  useEffect(() => {
+    if (value) {
+      setStatus('done')
+      setLocalError(null)
+    } else if (status === 'done') {
+      setStatus('idle')
+      setFileLabel(null)
+      setDurationLabel(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to parent value clearing
+  }, [value])
+
+  useEffect(() => {
+    onUploadingChange?.(status === 'checking' || status === 'uploading')
+  }, [status, onUploadingChange])
 
   const resetSelection = useCallback(() => {
     onChange('')
@@ -84,12 +104,14 @@ export function VideoSubmissionField({
       setLocalError(null)
       setUploadProgress(null)
 
-      if (!file.type.startsWith('video/')) {
+      if (!isVideoFile(file)) {
         setLocalError('Please choose a video file (not a photo). On iPhone, pick a video from your library or record a new one.')
         setStatus('error')
         onBlur?.()
         return
       }
+
+      const contentType = inferVideoContentType(file)
 
       if (file.size > APPLICATION_VIDEO_MAX_BYTES) {
         setLocalError(
@@ -144,7 +166,7 @@ export function VideoSubmissionField({
             clubId,
             fileName: file.name,
             fileSize: file.size,
-            contentType: file.type,
+            contentType,
           }),
         })
         const preparePayload = await prepareRes.json().catch(() => ({}))
@@ -152,9 +174,10 @@ export function VideoSubmissionField({
           throw new Error(preparePayload?.error ?? 'Could not start upload.')
         }
 
-        const { uploadUrl, publicUrl } = preparePayload as {
+        const { uploadUrl, publicUrl, token } = preparePayload as {
           uploadUrl?: string
           publicUrl?: string
+          token?: string
         }
         if (!uploadUrl || !publicUrl) {
           throw new Error('Upload setup failed. Please try again.')
@@ -162,20 +185,31 @@ export function VideoSubmissionField({
 
         setUploadProgress('Uploading video…')
 
-        const uploadRes = await fetch(uploadUrl, {
+        const signedTarget = new URL(uploadUrl)
+        if (token && !signedTarget.searchParams.has('token')) {
+          signedTarget.searchParams.set('token', token)
+        }
+
+        const formData = new FormData()
+        formData.append('cacheControl', '3600')
+        formData.append('', file, file.name || 'video.mp4')
+
+        const uploadRes = await fetch(signedTarget.toString(), {
           method: 'PUT',
-          headers: { 'Content-Type': file.type },
-          body: file,
+          headers: { 'x-upsert': 'false' },
+          body: formData,
         })
 
         if (!uploadRes.ok) {
+          const detail = await uploadRes.text().catch(() => '')
+          console.error('Video storage upload failed:', uploadRes.status, detail)
           throw new Error('Upload failed. Check your connection and try again.')
         }
 
         onChange(publicUrl)
         setStatus('done')
         setUploadProgress(null)
-        onBlur?.()
+        queueMicrotask(() => onBlur?.())
       } catch (e) {
         setLocalError(e instanceof Error ? e.message : 'Upload failed.')
         setStatus('error')

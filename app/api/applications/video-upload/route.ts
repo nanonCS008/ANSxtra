@@ -9,6 +9,7 @@ import {
   buildApplicationVideoStoragePath,
   extensionForVideoMime,
   getPublicVideoUrl,
+  resolveVideoContentType,
 } from '@/lib/applicationVideo'
 
 export const dynamic = 'force-dynamic'
@@ -40,10 +41,10 @@ export async function POST(request: NextRequest) {
     const clubId = String(body.clubId ?? '').trim()
     const fileName = String(body.fileName ?? '').trim()
     const fileSize = typeof body.fileSize === 'number' ? body.fileSize : Number(body.fileSize)
-    const contentType = String(body.contentType ?? '')
-      .toLowerCase()
-      .split(';')[0]
-      .trim()
+    const contentType = resolveVideoContentType(
+      String(body.contentType ?? ''),
+      fileName
+    )
 
     if (!clubId) {
       return NextResponse.json({ code: 'MISSING_CLUB', error: 'Missing clubId' }, { status: 400 })
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!contentType || !APPLICATION_VIDEO_MIME_TYPES.has(contentType)) {
+    if (!APPLICATION_VIDEO_MIME_TYPES.has(contentType)) {
       return NextResponse.json(
         {
           code: 'INVALID_FILE_TYPE',

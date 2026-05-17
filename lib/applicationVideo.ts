@@ -19,6 +19,32 @@ export const APPLICATION_VIDEO_MIME_TYPES = new Set([
   'video/mpeg',
 ])
 
+/** iOS and some Android pickers leave `file.type` empty — infer from extension. */
+export function resolveVideoContentType(contentType = '', fileName = ''): string {
+  const raw = contentType.toLowerCase().split(';')[0].trim()
+  if (raw.startsWith('video/')) return raw
+
+  const ext = fileName.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase()
+  const byExt: Record<string, string> = {
+    mp4: 'video/mp4',
+    m4v: 'video/x-m4v',
+    mov: 'video/quicktime',
+    webm: 'video/webm',
+    '3gp': 'video/3gpp',
+  }
+  if (ext && byExt[ext]) return byExt[ext]
+  return 'video/mp4'
+}
+
+export function inferVideoContentType(file: File): string {
+  return resolveVideoContentType(file.type, file.name)
+}
+
+export function isVideoFile(file: File): boolean {
+  const mime = inferVideoContentType(file)
+  return mime.startsWith('video/') && APPLICATION_VIDEO_MIME_TYPES.has(mime)
+}
+
 export function extensionForVideoMime(mime: string, fileName?: string): string {
   const m = mime.toLowerCase().split(';')[0].trim()
   if (m === 'video/quicktime') return 'mov'

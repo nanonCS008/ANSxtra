@@ -241,7 +241,7 @@ export async function GET(request: NextRequest) {
     const questionColumns = singleClubId ? getQuestionColumnsForClub(singleClubId) : [];
 
     const baseColumns = ['Nickname', 'Full name', 'Year group', 'Email'] as const;
-    const auditColumns = ['Status', 'Applied', 'Application ID'] as const;
+    const auditColumns = ['Status'] as const;
     csvHeader = useClubColumn
       ? ['Club', ...baseColumns, ...auditColumns, 'Responses']
       : questionColumns.length > 0
@@ -272,11 +272,7 @@ export async function GET(request: NextRequest) {
         yearCell,
         emailByUserId.get(row.user_id) ?? '',
       ];
-      const auditCells = [
-        statusLabelForExport(row.status),
-        new Date(row.applied_at).toLocaleDateString('en-GB'),
-        row.id,
-      ];
+      const auditCells = [statusLabelForExport(row.status)];
 
       if (useClubColumn) {
         return [

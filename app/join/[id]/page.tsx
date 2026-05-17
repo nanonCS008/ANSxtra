@@ -114,6 +114,7 @@ export default function JoinPage() {
   const [submitAttempted, setSubmitAttempted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<{ code?: string; message: string } | null>(null)
+  const [videoUploading, setVideoUploading] = useState(false)
   const [userProfile, setUserProfile] = useState<{ year_group: number } | null>(null)
   const [profileError, setProfileError] = useState<string | null>(null)
 
@@ -561,8 +562,9 @@ export default function JoinPage() {
             onChange={(url) => {
               setResponses((prev) => ({ ...prev, [field.key]: url }))
             }}
+            onUploadingChange={setVideoUploading}
             onBlur={() => setTouched((prev) => ({ ...prev, [field.key]: true }))}
-            error={error}
+            error={videoUploading ? undefined : error}
           />
         </div>
       )
