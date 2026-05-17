@@ -241,12 +241,12 @@ export async function GET(request: NextRequest) {
     const questionColumns = singleClubId ? getQuestionColumnsForClub(singleClubId) : [];
 
     const baseColumns = ['Nickname', 'Full name', 'Year group', 'Email'] as const;
-    const auditColumns = ['Status'] as const;
+    const statusColumn = 'Status' as const;
     csvHeader = useClubColumn
-      ? ['Club', ...baseColumns, ...auditColumns, 'Responses']
+      ? ['Club', ...baseColumns, 'Responses', statusColumn]
       : questionColumns.length > 0
-        ? [...baseColumns, ...auditColumns, ...questionColumns.map((q) => q.label)]
-        : [...baseColumns, ...auditColumns, 'Responses'];
+        ? [...baseColumns, ...questionColumns.map((q) => q.label), statusColumn]
+        : [...baseColumns, 'Responses', statusColumn];
 
     const sorted = [...filtered].sort((a, b) => {
       const ya = getYearForFilter(a);
@@ -278,23 +278,23 @@ export async function GET(request: NextRequest) {
         return [
           clubName,
           ...identityCells,
-          ...auditCells,
           formatApplicationResponsesForExport(row.responses, row.club_id),
+          ...auditCells,
         ];
       }
 
       if (questionColumns.length > 0) {
         return [
           ...identityCells,
-          ...auditCells,
           ...questionColumns.map((q) => getResponseValueForExport(row.responses, row.club_id, q.key)),
+          ...auditCells,
         ];
       }
 
       return [
         ...identityCells,
-        ...auditCells,
         formatApplicationResponsesForExport(row.responses, row.club_id),
+        ...auditCells,
       ];
     });
   } else {

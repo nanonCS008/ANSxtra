@@ -68,11 +68,8 @@ export function buildApplicationVideoStoragePath(
 
 export function getPublicVideoUrl(supabaseUrl: string, path: string): string {
   const base = supabaseUrl.replace(/\/$/, '')
-  const encoded = path
-    .split('/')
-    .map((segment) => encodeURIComponent(segment))
-    .join('/')
-  return `${base}/storage/v1/object/public/${APPLICATION_VIDEOS_BUCKET}/${encoded}`
+  const cleanPath = path.replace(/^\/+/, '')
+  return `${base}/storage/v1/object/public/${APPLICATION_VIDEOS_BUCKET}/${cleanPath}`
 }
 
 export function isAllowedApplicationVideoUrl(url: string, supabaseUrl: string): boolean {

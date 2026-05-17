@@ -42,11 +42,5 @@ export function buildSpreadsheetBuffer(header: string[], rows: unknown[][]): Buf
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Applications')
 
-  const guideHeader = ['Column', 'Full question / field']
-  const guideRows = header.map((label) => [label, label])
-  const guide = XLSX.utils.aoa_to_sheet([guideHeader, ...guideRows])
-  guide['!cols'] = [{ wch: 28 }, { wch: 72 }]
-  XLSX.utils.book_append_sheet(wb, guide, 'Column guide')
-
   return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer
 }

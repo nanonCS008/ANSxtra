@@ -56,6 +56,7 @@ function isRequired(field: FieldDef, state: { responses: Record<string, Response
 }
 
 const NO_QUESTIONS_CLUB_IDS = new Set(['mun', 'enterprise-club'])
+const VIDEO_SUBMISSION_KEY = 'video_submission'
 
 type JoinFormCopy = {
   pageDescription?: string
@@ -115,6 +116,8 @@ export default function JoinPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<{ code?: string; message: string } | null>(null)
   const [videoUploading, setVideoUploading] = useState(false)
+  const [videoSubmissionUrl, setVideoSubmissionUrl] = useState('')
+  const videoSubmissionUrlRef = useRef('')
   const [userProfile, setUserProfile] = useState<{ year_group: number } | null>(null)
   const [profileError, setProfileError] = useState<string | null>(null)
 
@@ -208,7 +211,8 @@ export default function JoinPage() {
         continue
       }
       if (field.kind === 'video') {
-        const url = typeof v === 'string' ? v.trim() : ''
+        const fromResponses = typeof v === 'string' ? v.trim() : ''
+        const url = fromResponses || videoSubmissionUrl.trim() || videoSubmissionUrlRef.current.trim()
         if (!url) {
           newErrors[field.key] = 'Please upload your video before submitting'
           continue
@@ -242,7 +246,7 @@ export default function JoinPage() {
     }
 
     return newErrors
-  }, [responses, fields, state, clubId])
+  }, [responses, fields, state, clubId, videoSubmissionUrl])
 
   const validationErrors = useMemo(() => getValidationErrors(), [getValidationErrors])
   const canSubmit = club.accepting && !isSubmitting && Object.keys(validationErrors).length === 0
@@ -352,11 +356,22 @@ export default function JoinPage() {
     setIsSubmitting(true)
     setSubmitError(null)
 
+    const mergedResponses = { ...responses }
+    const resolvedVideoUrl =
+      (typeof mergedResponses[VIDEO_SUBMISSION_KEY] === 'string'
+        ? String(mergedResponses[VIDEO_SUBMISSION_KEY]).trim()
+        : '') ||
+      videoSubmissionUrl.trim() ||
+      videoSubmissionUrlRef.current.trim()
+    if (resolvedVideoUrl) {
+      mergedResponses[VIDEO_SUBMISSION_KEY] = resolvedVideoUrl
+    }
+
     const responsesForApi: Record<string, string> = {}
     const responsesForPayload: Record<string, unknown> = {}
     for (const field of fields) {
       if (!isVisible(field, state)) continue
-      const v = responses[field.key]
+      const v = mergedResponses[field.key]
       if (v == null) continue
       if (typeof v === 'string') {
         const trimmed = v.trim()
@@ -558,9 +573,16 @@ export default function JoinPage() {
             label={field.label}
             helper={typeof field.helper === 'string' ? field.helper : undefined}
             required={required}
-            value={typeof v === 'string' ? v : ''}
+            value={
+              (typeof v === 'string' ? v : '') ||
+              videoSubmissionUrl ||
+              videoSubmissionUrlRef.current
+            }
             onChange={(url) => {
-              setResponses((prev) => ({ ...prev, [field.key]: url }))
+              const trimmed = url.trim()
+              videoSubmissionUrlRef.current = trimmed
+              setVideoSubmissionUrl(trimmed)
+              setResponses((prev) => ({ ...prev, [field.key]: trimmed }))
             }}
             onUploadingChange={setVideoUploading}
             onBlur={() => setTouched((prev) => ({ ...prev, [field.key]: true }))}

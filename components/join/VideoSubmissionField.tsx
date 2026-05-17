@@ -10,8 +10,11 @@ import {
   inferVideoContentType,
   isVideoFile,
 } from '@/lib/applicationVideo'
+import { readVideoDurationSeconds } from '@/lib/readVideoDuration'
+import { uploadApplicationVideo } from '@/lib/uploadApplicationVideo'
 import { cn } from '@/lib/utils/cn'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 
 type VideoSubmissionFieldProps = {
   fieldKey: string
@@ -24,28 +27,6 @@ type VideoSubmissionFieldProps = {
   onBlur?: () => void
   onUploadingChange?: (uploading: boolean) => void
   error?: string
-}
-
-function readVideoDurationSeconds(file: File): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file)
-    const video = document.createElement('video')
-    video.preload = 'metadata'
-    video.onloadedmetadata = () => {
-      URL.revokeObjectURL(url)
-      const duration = video.duration
-      if (!Number.isFinite(duration) || duration <= 0) {
-        reject(new Error('Could not read video length. Try another file or re-export as MP4.'))
-        return
-      }
-      resolve(duration)
-    }
-    video.onerror = () => {
-      URL.revokeObjectURL(url)
-      reject(new Error('Could not read this video file.'))
-    }
-    video.src = url
-  })
 }
 
 export function VideoSubmissionField({
@@ -62,6 +43,7 @@ export function VideoSubmissionField({
 }: VideoSubmissionFieldProps) {
   const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
+  const savedUrlRef = useRef(value)
   const [fileLabel, setFileLabel] = useState<string | null>(null)
   const [durationLabel, setDurationLabel] = useState<string | null>(null)
   const [status, setStatus] = useState<'idle' | 'checking' | 'uploading' | 'done' | 'error'>(
@@ -70,18 +52,16 @@ export function VideoSubmissionField({
   const [localError, setLocalError] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState<string | null>(null)
 
+  const displayUrl = value.trim() || savedUrlRef.current.trim()
   const displayError = error ?? localError
+  const isUploaded = status === 'done' && Boolean(displayUrl)
 
   useEffect(() => {
-    if (value) {
+    if (value.trim()) {
+      savedUrlRef.current = value.trim()
       setStatus('done')
       setLocalError(null)
-    } else if (status === 'done') {
-      setStatus('idle')
-      setFileLabel(null)
-      setDurationLabel(null)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to parent value clearing
   }, [value])
 
   useEffect(() => {
@@ -89,7 +69,8 @@ export function VideoSubmissionField({
   }, [status, onUploadingChange])
 
   const resetSelection = useCallback(() => {
-    onChange('')
+    savedUrlRef.current = ''
+    flushSync(() => onChange(''))
     setFileLabel(null)
     setDurationLabel(null)
     setLocalError(null)
@@ -105,7 +86,9 @@ export function VideoSubmissionField({
       setUploadProgress(null)
 
       if (!isVideoFile(file)) {
-        setLocalError('Please choose a video file (not a photo). On iPhone, pick a video from your library or record a new one.')
+        setLocalError(
+          'Please choose a video file (not a photo). On iPhone, pick a video from your library or record a new one.'
+        )
         setStatus('error')
         onBlur?.()
         return
@@ -156,62 +139,18 @@ export function VideoSubmissionField({
       }
 
       setStatus('uploading')
-      setUploadProgress('Preparing upload…')
+      setUploadProgress('Uploading video…')
 
       try {
-        const prepareRes = await fetch('/api/applications/video-upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            clubId,
-            fileName: file.name,
-            fileSize: file.size,
-            contentType,
-          }),
-        })
-        const preparePayload = await prepareRes.json().catch(() => ({}))
-        if (!prepareRes.ok) {
-          throw new Error(preparePayload?.error ?? 'Could not start upload.')
-        }
-
-        const { uploadUrl, publicUrl, token } = preparePayload as {
-          uploadUrl?: string
-          publicUrl?: string
-          token?: string
-        }
-        if (!uploadUrl || !publicUrl) {
-          throw new Error('Upload setup failed. Please try again.')
-        }
-
-        setUploadProgress('Uploading video…')
-
-        const signedTarget = new URL(uploadUrl)
-        if (token && !signedTarget.searchParams.has('token')) {
-          signedTarget.searchParams.set('token', token)
-        }
-
-        const formData = new FormData()
-        formData.append('cacheControl', '3600')
-        formData.append('', file, file.name || 'video.mp4')
-
-        const uploadRes = await fetch(signedTarget.toString(), {
-          method: 'PUT',
-          headers: { 'x-upsert': 'false' },
-          body: formData,
-        })
-
-        if (!uploadRes.ok) {
-          const detail = await uploadRes.text().catch(() => '')
-          console.error('Video storage upload failed:', uploadRes.status, detail)
-          throw new Error('Upload failed. Check your connection and try again.')
-        }
-
-        onChange(publicUrl)
+        const publicUrl = await uploadApplicationVideo(file, clubId, contentType)
+        savedUrlRef.current = publicUrl
+        flushSync(() => onChange(publicUrl))
         setStatus('done')
         setUploadProgress(null)
-        queueMicrotask(() => onBlur?.())
+        onBlur?.()
       } catch (e) {
-        setLocalError(e instanceof Error ? e.message : 'Upload failed.')
+        const message = e instanceof Error ? e.message : 'Upload failed.'
+        setLocalError(message)
         setStatus('error')
         setUploadProgress(null)
         onBlur?.()
@@ -227,9 +166,7 @@ export function VideoSubmissionField({
         {required && <span className="text-brand-pink ml-1">*</span>}
       </label>
 
-      {helper && (
-        <p className="text-white/55 text-sm leading-relaxed mb-3">{helper}</p>
-      )}
+      {helper && <p className="text-white/55 text-sm leading-relaxed mb-3">{helper}</p>}
 
       <p className="text-white/45 text-xs mb-3 leading-relaxed">
         Record or choose a 1–2 minute video from your device. Only Stage Crew leaders will review it.
@@ -247,14 +184,16 @@ export function VideoSubmissionField({
         }}
       />
 
+      <input type="hidden" name={fieldKey} value={displayUrl} readOnly aria-hidden />
+
       <div
         className={cn(
           'rounded-xl border border-dashed p-4 md:p-5 transition-colors',
           displayError ? 'border-red-500/40 bg-red-500/5' : 'border-white/15 bg-brand-navy/40',
-          status === 'done' && !displayError && 'border-brand-pink/35 bg-brand-pink/5'
+          isUploaded && !displayError && 'border-brand-pink/35 bg-brand-pink/5'
         )}
       >
-        {status === 'done' && value ? (
+        {isUploaded ? (
           <div className="space-y-3">
             <div className="flex items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-pink/20 text-brand-pink">
