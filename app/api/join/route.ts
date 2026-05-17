@@ -6,7 +6,8 @@ import clubs from '@/data/clubs.json'
 import crypto from 'crypto'
 import { notifyApplicationCountMilestones } from '@/lib/applicationAdminEmails'
 import { sendStudentApplicationReceivedEmail } from '@/lib/email/sendApplicationReceivedEmail'
-import { isAllowedStageCrewVideoUrl } from '@/lib/stageCrewVideo'
+import { parseStageCrewVideoLink } from '@/lib/stageCrewVideoLink'
+import { verifyStageCrewVideoLink } from '@/lib/verifyStageCrewVideoLink'
 import { getClubFormFields } from '@/lib/clubFormFields'
 import { getExternalSignupMessage, isExternalSignupClub } from '@/lib/externalSignupClubs'
 
@@ -246,8 +247,6 @@ export async function POST(request: NextRequest) {
       console.warn('POST /api/join: applications_v2 count failed (milestones skip):', countBeforeError)
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-
     for (const clubId of clubIds) {
       if (isExternalSignupClub(clubId)) {
         insertErrors.push({ clubId, error: { code: 'APPLICATIONS_DISABLED' } })
@@ -263,21 +262,27 @@ export async function POST(request: NextRequest) {
           typeof (body as { video_url?: string }).video_url === 'string'
             ? String((body as { video_url?: string }).video_url).trim()
             : ''
-        const videoPathFromBody =
-          typeof (body as { video_path?: string }).video_path === 'string'
-            ? String((body as { video_path?: string }).video_path).trim()
-            : ''
         const videoUrlFromResponses =
           typeof responseMap.video_submission === 'string'
             ? responseMap.video_submission.trim()
             : ''
-        const videoUrl = videoUrlFromBody || videoUrlFromResponses
-        const videoPath = videoPathFromBody
+        const videoUrlRaw = videoUrlFromBody || videoUrlFromResponses
+        const parsedVideo = videoUrlRaw ? parseStageCrewVideoLink(videoUrlRaw) : null
         let schoolShowInvalid = false
-        if (!videoUrl || !videoPath || !supabaseUrl || !isAllowedStageCrewVideoUrl(videoUrl, supabaseUrl)) {
+        if (!parsedVideo?.ok) {
           schoolShowInvalid = true
           insertErrors.push({ clubId, error: { code: 'INVALID_VIDEO' } })
         } else {
+          const accessible = await verifyStageCrewVideoLink(parsedVideo)
+          if (!accessible.ok) {
+            schoolShowInvalid = true
+            insertErrors.push({
+              clubId,
+              error: { code: 'INVALID_VIDEO', message: accessible.error },
+            })
+          }
+        }
+        if (!schoolShowInvalid) {
           for (const field of getClubFormFields(clubId)) {
             if (!field.required || field.kind === 'video') continue
             const val = responseMap[field.key]
@@ -308,29 +313,28 @@ export async function POST(request: NextRequest) {
         continue
       }
 
-      const schoolShowVideo =
+      const schoolShowVideoRaw =
         clubId === 'school-show'
-          ? {
-              video_url:
-                typeof (body as { video_url?: string }).video_url === 'string'
-                  ? String((body as { video_url?: string }).video_url).trim()
-                  : typeof (responses as Record<string, unknown>)?.video_submission === 'string'
-                    ? String((responses as Record<string, unknown>).video_submission).trim()
-                    : null,
-              video_path:
-                typeof (body as { video_path?: string }).video_path === 'string'
-                  ? String((body as { video_path?: string }).video_path).trim()
-                  : null,
-            }
-          : { video_url: null, video_path: null }
+          ? typeof (body as { video_url?: string }).video_url === 'string'
+            ? String((body as { video_url?: string }).video_url).trim()
+            : typeof (responses as Record<string, unknown>)?.video_submission === 'string'
+              ? String((responses as Record<string, unknown>).video_submission).trim()
+              : ''
+          : ''
+      const schoolShowVideoParsed =
+        clubId === 'school-show' && schoolShowVideoRaw
+          ? parseStageCrewVideoLink(schoolShowVideoRaw)
+          : null
+      const schoolShowVideoUrl =
+        schoolShowVideoParsed?.ok === true ? schoolShowVideoParsed.url : null
 
       const responsesPayload =
-        clubId === 'school-show' && schoolShowVideo.video_url
+        clubId === 'school-show' && schoolShowVideoUrl
           ? {
               ...(responses && typeof responses === 'object' && !Array.isArray(responses)
                 ? (responses as Record<string, unknown>)
                 : {}),
-              video_submission: schoolShowVideo.video_url,
+              video_submission: schoolShowVideoUrl,
             }
           : responses
 
@@ -348,8 +352,6 @@ export async function POST(request: NextRequest) {
           email: session.user.email,
           submitted_at: submittedAt,
           responses: responsesPayload,
-          video_url: schoolShowVideo.video_url,
-          video_path: schoolShowVideo.video_path,
           cancel_token: cancelToken,
           status: 'pending',
         })
@@ -381,6 +383,18 @@ export async function POST(request: NextRequest) {
             message: getExternalSignupMessage(disabledClubId),
           },
           { status: 403 }
+        )
+      }
+      if (first?.code === 'INVALID_VIDEO') {
+        return NextResponse.json(
+          {
+            code: 'INVALID_VIDEO',
+            message:
+              typeof first?.message === 'string'
+                ? first.message
+                : 'Please add a valid public YouTube or Google Drive link to your introduction video.',
+          },
+          { status: 400 }
         )
       }
 

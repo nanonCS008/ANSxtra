@@ -53,10 +53,10 @@ const FIELDS_BY_CLUB: Record<string, FieldDef[]> = {
     {
       key: 'video_submission',
       kind: 'video',
-      label: 'Video introduction (1–2 minutes)',
+      label: 'Video introduction link (1–2 minutes)',
       required: true,
       helper:
-        'Record or upload a short video explaining why you want to join the Stage Crew. Only the leadership team will review your video.',
+        'Upload a 1–2 minute video to YouTube or Google Drive (public or anyone-with-link), then paste the link here.',
     },
     {
       key: 'school_events_experience',

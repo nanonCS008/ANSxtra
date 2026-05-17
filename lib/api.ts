@@ -24,8 +24,8 @@ export type ApiClubForm = {
 
 export type ApplyRequestBody = {
   responses: Record<string, string>
+  /** School Show: normalized YouTube / Drive link (also stored in responses.video_submission). */
   video_url?: string
-  video_path?: string
 }
 
 export type ApplySuccess = { code: 'OK' }
@@ -143,10 +143,8 @@ export const APPLY_ERROR_MESSAGES: Record<string, string> = {
   APPLICATIONS_DISABLED:
     'Applications for this club are run outside ANSxtra. Please check with the club or school for how to sign up.',
   INVALID_RESPONSES: 'Please check your answers and fill in all required fields.',
-  INVALID_VIDEO: 'Please upload your application video before submitting.',
-  FILE_TOO_LARGE: 'Your video file is too large. Please use a shorter or smaller video.',
-  INVALID_FILE_TYPE: 'Please upload a video file (MP4 or MOV), not a photo.',
-  UPLOAD_URL_FAILED: 'Video upload is not available right now. Please try again later.',
+  INVALID_VIDEO:
+    'Please add a valid public YouTube or Google Drive link to your 1–2 minute introduction video.',
 }
 
 export function getApplyErrorMessage(code: string, message?: string): string {

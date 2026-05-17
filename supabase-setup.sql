@@ -66,8 +66,6 @@ CREATE TABLE applications_v2 (
   email TEXT,
   submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   responses JSONB NOT NULL DEFAULT '{}'::jsonb,
-  video_path TEXT,
-  video_url TEXT,
   cancel_token TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
   applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

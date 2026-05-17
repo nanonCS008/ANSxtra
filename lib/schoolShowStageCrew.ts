@@ -15,11 +15,8 @@ export const SCHOOL_SHOW_STAGE_CREW_EMAIL_DISCLAIMER = `Important Disclaimer
 Completing this application does not guarantee selection into the School Show Stage Crew.
 Applications will be reviewed by the leadership team. Final results will be sent via email by 29 May 2026.`
 
-/**
- * Reserved for future video / interview uploads — add `video` or `file` field kinds
- * in clubFormFields when ready without changing applications_v2 schema.
- */
-export const SCHOOL_SHOW_STAGE_CREW_FUTURE_FIELD_KEYS = ['video_submission', 'interview_slot'] as const
+/** Optional future form fields (e.g. interview slot). Video link uses `video_submission` in responses JSON. */
+export const SCHOOL_SHOW_STAGE_CREW_FUTURE_FIELD_KEYS = ['interview_slot'] as const
 
 export type SchoolShowNoticeItem = {
   label?: string

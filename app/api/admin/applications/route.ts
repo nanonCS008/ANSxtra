@@ -157,12 +157,17 @@ export async function GET() {
   const supabase = getAdminClient();
   const { data, error } = await supabase
     .from('applications_v2')
-    .select('id,user_id,club_id,status,applied_at,reviewed_at,notes,student_id,first_name,last_name,prename,year,email,submitted_at,responses,video_path,video_url')
+    .select(
+      'id,user_id,club_id,status,applied_at,reviewed_at,notes,student_id,first_name,last_name,prename,year,email,submitted_at,responses'
+    )
     .order('applied_at', { ascending: true });
 
   if (error) {
     console.error('Admin applications GET failed:', error);
-    return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch applications', details: error.message },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json(data ?? []);
@@ -198,7 +203,9 @@ export async function PATCH(request: NextRequest) {
       reviewed_at: new Date().toISOString(),
     })
     .in('id', targetIds)
-    .select('id,user_id,club_id,status,applied_at,reviewed_at,notes,student_id,first_name,last_name,prename,year,email,submitted_at,responses,video_path,video_url')
+    .select(
+      'id,user_id,club_id,status,applied_at,reviewed_at,notes,student_id,first_name,last_name,prename,year,email,submitted_at,responses'
+    )
 
 
   if (error) {

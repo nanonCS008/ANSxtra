@@ -27,8 +27,6 @@ type PendingApplication = {
   notes?: string | null;
   /** Per-club form answers (JSON from join form). */
   responses?: Record<string, unknown> | null;
-  video_path?: string | null;
-  video_url?: string | null;
 };
 
 function formatFormFieldKey(key: string): string {
@@ -52,11 +50,7 @@ function getResponseEntries(item: PendingApplication): [string, string][] {
     item.responses && typeof item.responses === 'object' && !Array.isArray(item.responses)
       ? (item.responses as Record<string, unknown>)
       : {}
-  const merged =
-    item.club_id === 'school-show' && item.video_url
-      ? { ...base, video_submission: item.video_url }
-      : base
-  return getApplicationResponseDisplayRows(merged, item.club_id).map((row) => [row.label, row.value]);
+  return getApplicationResponseDisplayRows(base, item.club_id).map((row) => [row.label, row.value]);
 }
 
 function prettyClubName(clubId: string): string {
@@ -240,7 +234,14 @@ export default function AdminApplicationsPage() {
     }
 
     if (!res.ok) {
-      setError('Failed to load applications.');
+      const payload = await res.json().catch(() => ({}));
+      const detail =
+        typeof payload?.details === 'string'
+          ? payload.details
+          : typeof payload?.error === 'string'
+            ? payload.error
+            : null;
+      setError(detail ? `Failed to load applications: ${detail}` : 'Failed to load applications.');
       setLoading(false);
       return;
     }

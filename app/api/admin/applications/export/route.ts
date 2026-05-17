@@ -27,19 +27,10 @@ type AppRow = {
   last_name?: string | null;
   prename?: string | null;
   responses?: unknown;
-  video_path?: string | null;
-  video_url?: string | null;
 };
 
-function responsesWithVideo(row: AppRow): unknown {
-  const base = row.responses;
-  if (row.club_id !== 'school-show' || !row.video_url) return base;
-  const map =
-    base && typeof base === 'object' && !Array.isArray(base)
-      ? { ...(base as Record<string, unknown>) }
-      : {};
-  map.video_submission = row.video_url;
-  return map;
+function responsesForExport(row: AppRow): unknown {
+  return row.responses;
 }
 
 type StudentRowExpected = { student_id: string; year_group: number | null };
@@ -198,7 +189,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('applications_v2')
-    .select('id,user_id,student_id,club_id,status,applied_at,reviewed_at,notes,first_name,last_name,prename,year,responses,video_path,video_url')
+    .select('id,user_id,student_id,club_id,status,applied_at,reviewed_at,notes,first_name,last_name,prename,year,responses')
     .order('applied_at', { ascending: true });
 
   if (statusScope === 'enrolled') {
@@ -291,7 +282,7 @@ export async function GET(request: NextRequest) {
         return [
           clubName,
           ...identityCells,
-          formatApplicationResponsesForExport(responsesWithVideo(row), row.club_id),
+          formatApplicationResponsesForExport(responsesForExport(row), row.club_id),
           ...auditCells,
         ];
       }
@@ -299,7 +290,7 @@ export async function GET(request: NextRequest) {
       if (questionColumns.length > 0) {
         return [
           ...identityCells,
-          ...questionColumns.map((q) => getResponseValueForExport(responsesWithVideo(row), row.club_id, q.key)),
+          ...questionColumns.map((q) => getResponseValueForExport(responsesForExport(row), row.club_id, q.key)),
           ...auditCells,
         ];
       }
