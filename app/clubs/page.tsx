@@ -3,6 +3,7 @@
 import { ClubGrid } from '@/components/clubs/ClubGrid'
 import { FilterBar, type YearGroupFilter } from '@/components/clubs/FilterBar'
 import { Container } from '@/components/ui/Container'
+import { APPLICATION_DEADLINE_DISPLAY } from '@/lib/applicationPeriod'
 import { getClubs } from '@/lib/data'
 import { Club } from '@/lib/types/club'
 import { motion } from 'framer-motion'
@@ -104,7 +105,7 @@ export default function ClubsPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4 }}
-          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6"
+          className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6"
         >
           <div>
             <h1 className="text-xl font-semibold text-white">
@@ -118,14 +119,20 @@ export default function ClubsPage() {
               )}
             </p>
           </div>
-          {!session?.user?.id && (
-            <div className="flex-shrink-0">
+          <div className="flex flex-col items-end gap-3 shrink-0">
+            {session?.user?.id && profileChecked && (
+              <p className="text-[11px] sm:text-xs text-white/45 text-right leading-snug">
+                Applications due{' '}
+                <span className="text-white/70 font-medium">{APPLICATION_DEADLINE_DISPLAY}</span>
+              </p>
+            )}
+            {!session?.user?.id && (
               <FilterBar
                 yearGroupFilter={yearGroupFilter}
                 onYearGroupFilterChange={setYearGroupFilter}
               />
-            </div>
-          )}
+            )}
+          </div>
         </motion.div>
 
         {/* Club grid */}

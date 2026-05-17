@@ -8,6 +8,10 @@ import { notifyApplicationCountMilestones } from '@/lib/applicationAdminEmails'
 import { sendStudentApplicationReceivedEmail } from '@/lib/email/sendApplicationReceivedEmail'
 import { parseStageCrewVideoLink } from '@/lib/stageCrewVideoLink'
 import { getClubFormFields } from '@/lib/clubFormFields'
+import {
+  APPLICATION_DEADLINE_DISPLAY,
+  isApplicationPeriodOpen,
+} from '@/lib/applicationPeriod'
 import { getExternalSignupMessage, isExternalSignupClub } from '@/lib/externalSignupClubs'
 
 function getStudentIdFromEmail(email: string): string | null {
@@ -44,6 +48,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { code: 'UNAUTHORIZED', error: 'Unauthorized' },
         { status: 401 }
+      )
+    }
+
+    if (!isApplicationPeriodOpen()) {
+      return NextResponse.json(
+        {
+          code: 'APPLICATIONS_CLOSED',
+          message: `Applications are closed. The deadline was ${APPLICATION_DEADLINE_DISPLAY}.`,
+        },
+        { status: 403 }
       )
     }
 

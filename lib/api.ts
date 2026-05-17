@@ -142,6 +142,8 @@ export const APPLY_ERROR_MESSAGES: Record<string, string> = {
   ALREADY_APPLIED: 'You already applied.',
   APPLICATIONS_DISABLED:
     'Applications for this club are run outside ANSxtra. Please check with the club or school for how to sign up.',
+  APPLICATIONS_CLOSED:
+    'Applications are closed. The deadline was Thursday 21 May.',
   INVALID_RESPONSES: 'Please check your answers and fill in all required fields.',
   INVALID_VIDEO:
     'Please paste a valid YouTube or Google Drive link to your 1–2 minute video explaining why you want to join Stage Crew.',

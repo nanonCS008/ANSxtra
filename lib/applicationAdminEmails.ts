@@ -1,5 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+import {
+  getApplicationPeriodDigestKey,
+  getApplicationPeriodEndDate,
+} from '@/lib/applicationPeriod';
 import clubs from '@/data/clubs.json';
 import { getAdminEmails } from '@/lib/admin';
 import { formatResendError, getResendClient, getResendFrom } from '@/lib/resendConfig';
@@ -18,23 +22,6 @@ export function parseApplicationMilestones(): number[] {
       : DEFAULT_MILESTONES;
   const unique = [...new Set(parsed)].sort((a, b) => a - b);
   return unique.length ? unique : DEFAULT_MILESTONES;
-}
-
-/**
- * When this instant has passed (server “now”), the period summary cron may send exactly once per digest key.
- * Example: `2026-05-22T23:59:59+07:00`
- */
-export function getApplicationPeriodEndDate(): Date | null {
-  const raw = process.env.APPLICATION_PERIOD_END_ISO?.trim();
-  if (!raw) return null;
-  const d = new Date(raw);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-export function getApplicationPeriodDigestKey(): string | null {
-  const raw = process.env.APPLICATION_PERIOD_END_ISO?.trim();
-  if (!raw) return null;
-  return `application-period-summary:v1:${raw}`;
 }
 
 function escapeHtml(text: string): string {
