@@ -10,6 +10,8 @@ import { TEDxLivestreamArchive } from '@/components/clubs/TEDxLivestreamArchive'
 import { ThemeEffectsLayer } from '@/components/clubs/ThemeEffectsLayer'
 import { DukeMeetingPoints } from '@/components/clubs/DukeMeetingPoints'
 import { InteractClubDetail } from '@/components/clubs/InteractClubDetail'
+import { StudentCouncilDetail } from '@/components/clubs/StudentCouncilDetail'
+import { StudentCouncilHeroPillars } from '@/components/clubs/StudentCouncilHeroPillars'
 import { Button } from '@/components/ui/Button'
 import { Container } from '@/components/ui/Container'
 import {
@@ -428,8 +430,11 @@ export default function ClubDetailPage() {
       <section
         id="club-hero"
         className={cn(
-          'relative overflow-hidden pt-6 pb-6 scroll-mt-header min-h-[240px] max-h-[320px] md:min-h-[260px] md:max-h-[340px] flex flex-col justify-center',
-          isSchoolShow ? 'school-show-hero-section' : 'club-hero-section'
+          'relative overflow-hidden pt-6 pb-6 scroll-mt-header flex flex-col justify-center',
+          isSchoolShow ? 'school-show-hero-section' : 'club-hero-section',
+          isStudentCouncil
+            ? 'min-h-[280px] max-h-[380px] md:min-h-[300px] md:max-h-[400px]'
+            : 'min-h-[240px] max-h-[320px] md:min-h-[260px] md:max-h-[340px]'
         )}
         style={{
           background: heroGradientBg,
@@ -555,9 +560,15 @@ export default function ClubDetailPage() {
                 </svg>
                 Back to Clubs
               </Link>
-              <h1 className={cn('font-bold text-white relative tracking-tight leading-tight', isDuke ? layout.titleSize : 'text-2xl md:text-3xl')}>
+              <h1
+                className={cn(
+                  'font-bold text-white relative tracking-tight leading-tight',
+                  isStudentCouncil ? 'text-3xl md:text-4xl' : isDuke ? layout.titleSize : 'text-2xl md:text-3xl'
+                )}
+              >
                 {displayName}
               </h1>
+              {isStudentCouncil && <StudentCouncilHeroPillars tintHex={effectiveTintHex} />}
               <div className="flex flex-wrap items-center gap-2">
                 {club.yearGroup && (
                   <span className={cn('inline-flex items-center rounded-md border border-white/10 bg-white/10 text-white/90 font-medium', isDuke ? 'px-2.5 py-1 text-xs' : 'px-2.5 py-1 text-xs')}>
@@ -680,26 +691,29 @@ export default function ClubDetailPage() {
                 <DetailChip label="Year group" value={club.yearGroup} tintHex={effectiveTintHex} />
               )}
             </div>
-            {/* About */}
-            {club.description && (
-              <div className="mb-5">
-                <h2 className="text-sm font-bold text-white mb-2 tracking-tight" style={{ borderLeft: `3px solid ${effectiveTintHex}`, paddingLeft: 8 }}>
-                  About
-                </h2>
-                <p className="text-white/80 text-sm leading-relaxed whitespace-pre-line" style={{ lineHeight: 1.55 }}>
-                  {aboutExpanded || !aboutNeedsExpand ? club.description : aboutTruncated}
-                </p>
-                {aboutNeedsExpand && (
-                  <button
-                    type="button"
-                    onClick={() => setAboutExpanded((e) => !e)}
-                    className="mt-2 text-sm font-medium hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--brand-deep)] rounded"
-                    style={{ color: effectiveTintHex }}
-                  >
-                    {aboutExpanded ? 'Show less' : 'Read more'}
-                  </button>
-                )}
-              </div>
+            {isStudentCouncil ? (
+              <StudentCouncilDetail tintHex={effectiveTintHex} />
+            ) : (
+              club.description && (
+                <div className="mb-5">
+                  <h2 className="text-sm font-bold text-white mb-2 tracking-tight" style={{ borderLeft: `3px solid ${effectiveTintHex}`, paddingLeft: 8 }}>
+                    About
+                  </h2>
+                  <p className="text-white/80 text-sm leading-relaxed whitespace-pre-line" style={{ lineHeight: 1.55 }}>
+                    {aboutExpanded || !aboutNeedsExpand ? club.description : aboutTruncated}
+                  </p>
+                  {aboutNeedsExpand && (
+                    <button
+                      type="button"
+                      onClick={() => setAboutExpanded((e) => !e)}
+                      className="mt-2 text-sm font-medium hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--brand-deep)] rounded"
+                      style={{ color: effectiveTintHex }}
+                    >
+                      {aboutExpanded ? 'Show less' : 'Read more'}
+                    </button>
+                  )}
+                </div>
+              )
             )}
             {club.id === 'interact-club' && <InteractClubDetail tintHex={effectiveTintHex} />}
             {/* MUN: simulation + expectations from leaders */}
@@ -730,7 +744,7 @@ export default function ClubDetailPage() {
               </div>
             )}
             {/* Roles */}
-            {club.roles.length > 0 && !isInteract && (
+            {club.roles.length > 0 && !isInteract && !isStudentCouncil && (
               <div className="mb-5">
                 <h2 className="text-sm font-bold text-white mb-2 tracking-tight">Available Roles</h2>
                 <div className="flex flex-wrap gap-1.5">
