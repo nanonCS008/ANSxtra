@@ -66,6 +66,8 @@ CREATE TABLE applications_v2 (
   email TEXT,
   submitted_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   responses JSONB NOT NULL DEFAULT '{}'::jsonb,
+  video_path TEXT,
+  video_url TEXT,
   cancel_token TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
   applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -88,7 +90,8 @@ CREATE POLICY "Users can view their own applications" ON applications
 
 -- Service role bypasses RLS automatically; no INSERT policy needed for anon users.
 
--- If `applications_v2` already exists from an older setup, add nickname / prename:
+-- If `applications_v2` already exists from an older setup, run:
+-- supabase-applications-video-columns.sql
 -- ALTER TABLE public.applications_v2 ADD COLUMN IF NOT EXISTS prename text;
 
 -- ============================================================

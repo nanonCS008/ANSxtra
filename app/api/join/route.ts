@@ -6,7 +6,7 @@ import clubs from '@/data/clubs.json'
 import crypto from 'crypto'
 import { notifyApplicationCountMilestones } from '@/lib/applicationAdminEmails'
 import { sendStudentApplicationReceivedEmail } from '@/lib/email/sendApplicationReceivedEmail'
-import { isAllowedApplicationVideoUrl } from '@/lib/applicationVideo'
+import { isAllowedStageCrewVideoUrl } from '@/lib/stageCrewVideo'
 import { getClubFormFields } from '@/lib/clubFormFields'
 import { getExternalSignupMessage, isExternalSignupClub } from '@/lib/externalSignupClubs'
 
@@ -259,12 +259,22 @@ export async function POST(request: NextRequest) {
           responses && typeof responses === 'object' && !Array.isArray(responses)
             ? (responses as Record<string, unknown>)
             : {}
-        const videoUrl =
+        const videoUrlFromBody =
+          typeof (body as { video_url?: string }).video_url === 'string'
+            ? String((body as { video_url?: string }).video_url).trim()
+            : ''
+        const videoPathFromBody =
+          typeof (body as { video_path?: string }).video_path === 'string'
+            ? String((body as { video_path?: string }).video_path).trim()
+            : ''
+        const videoUrlFromResponses =
           typeof responseMap.video_submission === 'string'
             ? responseMap.video_submission.trim()
             : ''
+        const videoUrl = videoUrlFromBody || videoUrlFromResponses
+        const videoPath = videoPathFromBody
         let schoolShowInvalid = false
-        if (!videoUrl || !supabaseUrl || !isAllowedApplicationVideoUrl(videoUrl, supabaseUrl)) {
+        if (!videoUrl || !videoPath || !supabaseUrl || !isAllowedStageCrewVideoUrl(videoUrl, supabaseUrl)) {
           schoolShowInvalid = true
           insertErrors.push({ clubId, error: { code: 'INVALID_VIDEO' } })
         } else {
@@ -298,6 +308,32 @@ export async function POST(request: NextRequest) {
         continue
       }
 
+      const schoolShowVideo =
+        clubId === 'school-show'
+          ? {
+              video_url:
+                typeof (body as { video_url?: string }).video_url === 'string'
+                  ? String((body as { video_url?: string }).video_url).trim()
+                  : typeof (responses as Record<string, unknown>)?.video_submission === 'string'
+                    ? String((responses as Record<string, unknown>).video_submission).trim()
+                    : null,
+              video_path:
+                typeof (body as { video_path?: string }).video_path === 'string'
+                  ? String((body as { video_path?: string }).video_path).trim()
+                  : null,
+            }
+          : { video_url: null, video_path: null }
+
+      const responsesPayload =
+        clubId === 'school-show' && schoolShowVideo.video_url
+          ? {
+              ...(responses && typeof responses === 'object' && !Array.isArray(responses)
+                ? (responses as Record<string, unknown>)
+                : {}),
+              video_submission: schoolShowVideo.video_url,
+            }
+          : responses
+
       // Create application
       const { data, error } = await supabase
         .from('applications_v2')
@@ -311,7 +347,9 @@ export async function POST(request: NextRequest) {
           year: userYearGroup,
           email: session.user.email,
           submitted_at: submittedAt,
-          responses,
+          responses: responsesPayload,
+          video_url: schoolShowVideo.video_url,
+          video_path: schoolShowVideo.video_path,
           cancel_token: cancelToken,
           status: 'pending',
         })

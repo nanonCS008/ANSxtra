@@ -1,16 +1,16 @@
-/** Supabase Storage bucket for club application videos (create via supabase-storage-setup.sql). */
-export const APPLICATION_VIDEOS_BUCKET = 'application-videos'
+/** Supabase Storage bucket for School Show Stage Crew application videos. */
+export const STAGE_CREW_VIDEOS_BUCKET = 'stage-crew-videos'
 
-export const APPLICATION_VIDEO_MIN_SECONDS = 60
-export const APPLICATION_VIDEO_MAX_SECONDS = 150
+export const STAGE_CREW_VIDEO_MIN_SECONDS = 60
+export const STAGE_CREW_VIDEO_MAX_SECONDS = 150
 
-/** 200 MB — enough for ~2 min phone video */
-export const APPLICATION_VIDEO_MAX_BYTES = 200 * 1024 * 1024
+/** 100 MB */
+export const STAGE_CREW_VIDEO_MAX_BYTES = 100 * 1024 * 1024
 
-export const APPLICATION_VIDEO_ACCEPT =
+export const STAGE_CREW_VIDEO_ACCEPT =
   'video/*,video/mp4,video/quicktime,video/webm,video/3gpp,.mp4,.mov,.webm,.m4v'
 
-export const APPLICATION_VIDEO_MIME_TYPES = new Set([
+export const STAGE_CREW_VIDEO_MIME_TYPES = new Set([
   'video/mp4',
   'video/quicktime',
   'video/webm',
@@ -19,7 +19,6 @@ export const APPLICATION_VIDEO_MIME_TYPES = new Set([
   'video/mpeg',
 ])
 
-/** iOS and some Android pickers leave `file.type` empty — infer from extension. */
 export function resolveVideoContentType(contentType = '', fileName = ''): string {
   const raw = contentType.toLowerCase().split(';')[0].trim()
   if (raw.startsWith('video/')) return raw
@@ -42,7 +41,7 @@ export function inferVideoContentType(file: File): string {
 
 export function isVideoFile(file: File): boolean {
   const mime = inferVideoContentType(file)
-  return mime.startsWith('video/') && APPLICATION_VIDEO_MIME_TYPES.has(mime)
+  return mime.startsWith('video/') && STAGE_CREW_VIDEO_MIME_TYPES.has(mime)
 }
 
 export function extensionForVideoMime(mime: string, fileName?: string): string {
@@ -56,31 +55,22 @@ export function extensionForVideoMime(mime: string, fileName?: string): string {
   return 'mp4'
 }
 
-export function buildApplicationVideoStoragePath(
-  clubId: string,
-  userId: string,
-  ext: string
-): string {
-  const safeClub = clubId.replace(/[^a-z0-9-]/gi, '')
+export function buildStageCrewVideoPath(userId: string, ext: string): string {
   const safeUser = userId.replace(/[^a-z0-9-]/gi, '')
-  return `${safeClub}/${safeUser}/${crypto.randomUUID()}.${ext}`
+  return `school-show/${safeUser}/${crypto.randomUUID()}.${ext}`
 }
 
-export function getPublicVideoUrl(supabaseUrl: string, path: string): string {
+export function getStageCrewVideoPublicUrl(supabaseUrl: string, storagePath: string): string {
   const base = supabaseUrl.replace(/\/$/, '')
-  const cleanPath = path.replace(/^\/+/, '')
-  return `${base}/storage/v1/object/public/${APPLICATION_VIDEOS_BUCKET}/${cleanPath}`
+  const cleanPath = storagePath.replace(/^\/+/, '')
+  return `${base}/storage/v1/object/public/${STAGE_CREW_VIDEOS_BUCKET}/${cleanPath}`
 }
 
-export function isAllowedApplicationVideoUrl(url: string, supabaseUrl: string): boolean {
+export function isAllowedStageCrewVideoUrl(url: string, supabaseUrl: string): boolean {
   const trimmed = url.trim()
   if (!trimmed) return false
-  try {
-    const expectedPrefix = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${APPLICATION_VIDEOS_BUCKET}/`
-    return trimmed.startsWith(expectedPrefix)
-  } catch {
-    return false
-  }
+  const expectedPrefix = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${STAGE_CREW_VIDEOS_BUCKET}/`
+  return trimmed.startsWith(expectedPrefix)
 }
 
 export function formatVideoDuration(seconds: number): string {

@@ -157,7 +157,7 @@ export async function GET() {
   const supabase = getAdminClient();
   const { data, error } = await supabase
     .from('applications_v2')
-    .select('id,user_id,club_id,status,applied_at,reviewed_at,notes,student_id,first_name,last_name,prename,year,email,submitted_at,responses')
+    .select('id,user_id,club_id,status,applied_at,reviewed_at,notes,student_id,first_name,last_name,prename,year,email,submitted_at,responses,video_path,video_url')
     .order('applied_at', { ascending: true });
 
   if (error) {
@@ -198,7 +198,7 @@ export async function PATCH(request: NextRequest) {
       reviewed_at: new Date().toISOString(),
     })
     .in('id', targetIds)
-    .select('id,user_id,club_id,status,applied_at,reviewed_at,notes,student_id,first_name,last_name,prename,year,email,submitted_at,responses')
+    .select('id,user_id,club_id,status,applied_at,reviewed_at,notes,student_id,first_name,last_name,prename,year,email,submitted_at,responses,video_path,video_url')
 
 
   if (error) {

@@ -13,7 +13,10 @@ import { getExternalSignupMessage, isExternalSignupClub } from '@/lib/externalSi
 import { isValidStoredDobIso } from '@/lib/dmyDate'
 import { TEDX_ARCHIVE_ITEMS } from '@/components/clubs/TEDxLivestreamArchive'
 import { DmyDateField } from '@/components/join/DmyDateField'
-import { VideoSubmissionField } from '@/components/join/VideoSubmissionField'
+import {
+  VideoSubmissionField,
+  type VideoUploadValue,
+} from '@/components/join/VideoSubmissionField'
 import { getClubById } from '@/lib/data'
 import { cn } from '@/lib/utils/cn'
 import { motion } from 'framer-motion'
@@ -116,8 +119,8 @@ export default function JoinPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<{ code?: string; message: string } | null>(null)
   const [videoUploading, setVideoUploading] = useState(false)
-  const [videoSubmissionUrl, setVideoSubmissionUrl] = useState('')
-  const videoSubmissionUrlRef = useRef('')
+  const [videoUpload, setVideoUpload] = useState<VideoUploadValue | null>(null)
+  const videoUploadRef = useRef<VideoUploadValue | null>(null)
   const [userProfile, setUserProfile] = useState<{ year_group: number } | null>(null)
   const [profileError, setProfileError] = useState<string | null>(null)
 
@@ -212,7 +215,8 @@ export default function JoinPage() {
       }
       if (field.kind === 'video') {
         const fromResponses = typeof v === 'string' ? v.trim() : ''
-        const url = fromResponses || videoSubmissionUrl.trim() || videoSubmissionUrlRef.current.trim()
+        const uploaded = videoUpload ?? videoUploadRef.current
+        const url = fromResponses || uploaded?.publicUrl?.trim() || ''
         if (!url) {
           newErrors[field.key] = 'Please upload your video before submitting'
           continue
@@ -246,10 +250,14 @@ export default function JoinPage() {
     }
 
     return newErrors
-  }, [responses, fields, state, clubId, videoSubmissionUrl])
+  }, [responses, fields, state, clubId, videoUpload])
 
   const validationErrors = useMemo(() => getValidationErrors(), [getValidationErrors])
-  const canSubmit = club.accepting && !isSubmitting && Object.keys(validationErrors).length === 0
+  const canSubmit =
+    club.accepting &&
+    !isSubmitting &&
+    !videoUploading &&
+    Object.keys(validationErrors).length === 0
 
   const derivedStudentId = useMemo(() => {
     const email = session?.user?.email?.trim().toLowerCase() ?? ''
@@ -326,6 +334,8 @@ export default function JoinPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
 
+    if (videoUploading) return
+
     setSubmitAttempted(true)
 
     const newErrors = getValidationErrors()
@@ -357,14 +367,9 @@ export default function JoinPage() {
     setSubmitError(null)
 
     const mergedResponses = { ...responses }
-    const resolvedVideoUrl =
-      (typeof mergedResponses[VIDEO_SUBMISSION_KEY] === 'string'
-        ? String(mergedResponses[VIDEO_SUBMISSION_KEY]).trim()
-        : '') ||
-      videoSubmissionUrl.trim() ||
-      videoSubmissionUrlRef.current.trim()
-    if (resolvedVideoUrl) {
-      mergedResponses[VIDEO_SUBMISSION_KEY] = resolvedVideoUrl
+    const uploaded = videoUpload ?? videoUploadRef.current
+    if (uploaded?.publicUrl) {
+      mergedResponses[VIDEO_SUBMISSION_KEY] = uploaded.publicUrl
     }
 
     const responsesForApi: Record<string, string> = {}
@@ -404,6 +409,9 @@ export default function JoinPage() {
       })
       await submitApplication(club.id, {
         responses: responsesForApi,
+        ...(uploaded?.publicUrl
+          ? { video_url: uploaded.publicUrl, video_path: uploaded.storagePath }
+          : {}),
       })
       saveApplication(payload)
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -565,24 +573,34 @@ export default function JoinPage() {
     }
 
     if (field.kind === 'video') {
+      const videoValue: VideoUploadValue | null =
+        videoUpload ??
+        videoUploadRef.current ??
+        (typeof v === 'string' && v.trim()
+          ? { publicUrl: v.trim(), storagePath: '' }
+          : null)
+
       return (
         <div ref={(el) => { fieldRefs.current[field.key] = el }} className="w-full">
           <VideoSubmissionField
             fieldKey={field.key}
-            clubId={clubId}
+            userId={session?.user?.id ?? ''}
             label={field.label}
             helper={typeof field.helper === 'string' ? field.helper : undefined}
             required={required}
-            value={
-              (typeof v === 'string' ? v : '') ||
-              videoSubmissionUrl ||
-              videoSubmissionUrlRef.current
-            }
-            onChange={(url) => {
-              const trimmed = url.trim()
-              videoSubmissionUrlRef.current = trimmed
-              setVideoSubmissionUrl(trimmed)
-              setResponses((prev) => ({ ...prev, [field.key]: trimmed }))
+            value={videoValue}
+            onChange={(next) => {
+              videoUploadRef.current = next
+              setVideoUpload(next)
+              if (next?.publicUrl) {
+                setResponses((prev) => ({ ...prev, [field.key]: next.publicUrl }))
+              } else {
+                setResponses((prev) => {
+                  const copy = { ...prev }
+                  delete copy[field.key]
+                  return copy
+                })
+              }
             }}
             onUploadingChange={setVideoUploading}
             onBlur={() => setTouched((prev) => ({ ...prev, [field.key]: true }))}

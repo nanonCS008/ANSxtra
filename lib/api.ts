@@ -24,6 +24,8 @@ export type ApiClubForm = {
 
 export type ApplyRequestBody = {
   responses: Record<string, string>
+  video_url?: string
+  video_path?: string
 }
 
 export type ApplySuccess = { code: 'OK' }

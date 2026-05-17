@@ -2,28 +2,32 @@
 
 import { Button } from '@/components/ui/Button'
 import {
-  APPLICATION_VIDEO_ACCEPT,
-  APPLICATION_VIDEO_MAX_BYTES,
-  APPLICATION_VIDEO_MAX_SECONDS,
-  APPLICATION_VIDEO_MIN_SECONDS,
   formatVideoDuration,
-  inferVideoContentType,
   isVideoFile,
-} from '@/lib/applicationVideo'
+  STAGE_CREW_VIDEO_ACCEPT,
+  STAGE_CREW_VIDEO_MAX_BYTES,
+  STAGE_CREW_VIDEO_MAX_SECONDS,
+  STAGE_CREW_VIDEO_MIN_SECONDS,
+} from '@/lib/stageCrewVideo'
 import { readVideoDurationSeconds } from '@/lib/readVideoDuration'
-import { uploadApplicationVideo } from '@/lib/uploadApplicationVideo'
+import { uploadStageCrewVideo } from '@/lib/uploadStageCrewVideoClient'
 import { cn } from '@/lib/utils/cn'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 
+export type VideoUploadValue = {
+  publicUrl: string
+  storagePath: string
+}
+
 type VideoSubmissionFieldProps = {
   fieldKey: string
-  clubId: string
+  userId: string
   label: string
   helper?: string
   required?: boolean
-  value: string
-  onChange: (publicUrl: string) => void
+  value: VideoUploadValue | null
+  onChange: (value: VideoUploadValue | null) => void
   onBlur?: () => void
   onUploadingChange?: (uploading: boolean) => void
   error?: string
@@ -31,7 +35,7 @@ type VideoSubmissionFieldProps = {
 
 export function VideoSubmissionField({
   fieldKey,
-  clubId,
+  userId,
   label,
   helper,
   required,
@@ -43,38 +47,39 @@ export function VideoSubmissionField({
 }: VideoSubmissionFieldProps) {
   const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
-  const savedUrlRef = useRef(value)
+  const savedRef = useRef<VideoUploadValue | null>(value)
   const [fileLabel, setFileLabel] = useState<string | null>(null)
   const [durationLabel, setDurationLabel] = useState<string | null>(null)
   const [status, setStatus] = useState<'idle' | 'checking' | 'uploading' | 'done' | 'error'>(
-    value ? 'done' : 'idle'
+    value?.publicUrl ? 'done' : 'idle'
   )
   const [localError, setLocalError] = useState<string | null>(null)
-  const [uploadProgress, setUploadProgress] = useState<string | null>(null)
+  const [uploadPercent, setUploadPercent] = useState<number | null>(null)
 
-  const displayUrl = value.trim() || savedUrlRef.current.trim()
+  const activeValue = value ?? savedRef.current
   const displayError = error ?? localError
-  const isUploaded = status === 'done' && Boolean(displayUrl)
+  const isUploaded = status === 'done' && Boolean(activeValue?.publicUrl)
+  const isBusy = status === 'checking' || status === 'uploading'
 
   useEffect(() => {
-    if (value.trim()) {
-      savedUrlRef.current = value.trim()
+    if (value?.publicUrl) {
+      savedRef.current = value
       setStatus('done')
       setLocalError(null)
     }
   }, [value])
 
   useEffect(() => {
-    onUploadingChange?.(status === 'checking' || status === 'uploading')
-  }, [status, onUploadingChange])
+    onUploadingChange?.(isBusy)
+  }, [isBusy, onUploadingChange])
 
   const resetSelection = useCallback(() => {
-    savedUrlRef.current = ''
-    flushSync(() => onChange(''))
+    savedRef.current = null
+    flushSync(() => onChange(null))
     setFileLabel(null)
     setDurationLabel(null)
     setLocalError(null)
-    setUploadProgress(null)
+    setUploadPercent(null)
     setStatus('idle')
     if (inputRef.current) inputRef.current.value = ''
   }, [onChange])
@@ -82,8 +87,14 @@ export function VideoSubmissionField({
   const handleFile = useCallback(
     async (file: File | null) => {
       if (!file) return
+      if (!userId) {
+        setLocalError('You must be signed in to upload a video.')
+        setStatus('error')
+        return
+      }
+
       setLocalError(null)
-      setUploadProgress(null)
+      setUploadPercent(null)
 
       if (!isVideoFile(file)) {
         setLocalError(
@@ -94,11 +105,9 @@ export function VideoSubmissionField({
         return
       }
 
-      const contentType = inferVideoContentType(file)
-
-      if (file.size > APPLICATION_VIDEO_MAX_BYTES) {
+      if (file.size > STAGE_CREW_VIDEO_MAX_BYTES) {
         setLocalError(
-          `This file is too large (${Math.round(file.size / (1024 * 1024))} MB). Maximum is ${Math.round(APPLICATION_VIDEO_MAX_BYTES / (1024 * 1024))} MB.`
+          `This file is too large (${Math.round(file.size / (1024 * 1024))} MB). Maximum is ${Math.round(STAGE_CREW_VIDEO_MAX_BYTES / (1024 * 1024))} MB.`
         )
         setStatus('error')
         onBlur?.()
@@ -120,16 +129,16 @@ export function VideoSubmissionField({
 
       setDurationLabel(formatVideoDuration(durationSec))
 
-      if (durationSec < APPLICATION_VIDEO_MIN_SECONDS) {
+      if (durationSec < STAGE_CREW_VIDEO_MIN_SECONDS) {
         setLocalError(
-          `Your video is ${formatVideoDuration(durationSec)}. Please record at least ${formatVideoDuration(APPLICATION_VIDEO_MIN_SECONDS)} (1 minute).`
+          `Your video is ${formatVideoDuration(durationSec)}. Please record at least ${formatVideoDuration(STAGE_CREW_VIDEO_MIN_SECONDS)} (1 minute).`
         )
         setStatus('error')
         onBlur?.()
         return
       }
 
-      if (durationSec > APPLICATION_VIDEO_MAX_SECONDS) {
+      if (durationSec > STAGE_CREW_VIDEO_MAX_SECONDS) {
         setLocalError(
           `Your video is ${formatVideoDuration(durationSec)}. Please keep it to about 2 minutes or less.`
         )
@@ -139,24 +148,24 @@ export function VideoSubmissionField({
       }
 
       setStatus('uploading')
-      setUploadProgress('Uploading video…')
+      setUploadPercent(0)
 
       try {
-        const publicUrl = await uploadApplicationVideo(file, clubId, contentType)
-        savedUrlRef.current = publicUrl
-        flushSync(() => onChange(publicUrl))
+        const result = await uploadStageCrewVideo(file, userId, (pct) => setUploadPercent(pct))
+        savedRef.current = result
+        flushSync(() => onChange(result))
         setStatus('done')
-        setUploadProgress(null)
+        setUploadPercent(100)
         onBlur?.()
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Upload failed.'
         setLocalError(message)
         setStatus('error')
-        setUploadProgress(null)
+        setUploadPercent(null)
         onBlur?.()
       }
     },
-    [clubId, onChange, onBlur]
+    [userId, onChange, onBlur]
   )
 
   return (
@@ -176,15 +185,16 @@ export function VideoSubmissionField({
         ref={inputRef}
         id={inputId}
         type="file"
-        accept={APPLICATION_VIDEO_ACCEPT}
+        accept={STAGE_CREW_VIDEO_ACCEPT}
         className="sr-only"
+        disabled={isBusy}
         onChange={(e) => {
           const file = e.target.files?.[0] ?? null
           void handleFile(file)
         }}
       />
 
-      <input type="hidden" name={fieldKey} value={displayUrl} readOnly aria-hidden />
+      <input type="hidden" name={fieldKey} value={activeValue?.publicUrl ?? ''} readOnly aria-hidden />
 
       <div
         className={cn(
@@ -210,31 +220,41 @@ export function VideoSubmissionField({
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
+              <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={isBusy}>
                 Replace video
               </Button>
-              <Button type="button" variant="outline" size="sm" onClick={resetSelection}>
+              <Button type="button" variant="outline" size="sm" onClick={resetSelection} disabled={isBusy}>
                 Remove
               </Button>
             </div>
           </div>
         ) : (
-          <div className="text-center">
+          <div className="text-center space-y-3">
             <Button
               type="button"
               size="lg"
               fullWidth
-              disabled={status === 'checking' || status === 'uploading'}
+              disabled={isBusy}
               onClick={() => inputRef.current?.click()}
               className="min-h-[48px]"
             >
               {status === 'uploading'
-                ? uploadProgress ?? 'Uploading…'
+                ? uploadPercent != null
+                  ? `Uploading… ${uploadPercent}%`
+                  : 'Uploading…'
                 : status === 'checking'
                   ? 'Checking video…'
                   : 'Choose or record video'}
             </Button>
-            <p className="text-white/40 text-xs mt-3">
+            {status === 'uploading' && uploadPercent != null && (
+              <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full bg-brand-pink transition-all duration-200"
+                  style={{ width: `${uploadPercent}%` }}
+                />
+              </div>
+            )}
+            <p className="text-white/40 text-xs">
               Works on phone and tablet — pick from gallery or Files, or record a new clip.
             </p>
           </div>

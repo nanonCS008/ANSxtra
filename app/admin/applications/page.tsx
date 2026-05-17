@@ -27,6 +27,8 @@ type PendingApplication = {
   notes?: string | null;
   /** Per-club form answers (JSON from join form). */
   responses?: Record<string, unknown> | null;
+  video_path?: string | null;
+  video_url?: string | null;
 };
 
 function formatFormFieldKey(key: string): string {
@@ -45,9 +47,16 @@ function formatFormValue(v: unknown): string {
   }
 }
 
-function getResponseEntries(responses: unknown, clubId: string): [string, string][] {
-  if (!responses) return [];
-  return getApplicationResponseDisplayRows(responses, clubId).map((row) => [row.label, row.value]);
+function getResponseEntries(item: PendingApplication): [string, string][] {
+  const base =
+    item.responses && typeof item.responses === 'object' && !Array.isArray(item.responses)
+      ? (item.responses as Record<string, unknown>)
+      : {}
+  const merged =
+    item.club_id === 'school-show' && item.video_url
+      ? { ...base, video_submission: item.video_url }
+      : base
+  return getApplicationResponseDisplayRows(merged, item.club_id).map((row) => [row.label, row.value]);
 }
 
 function prettyClubName(clubId: string): string {
@@ -651,7 +660,7 @@ export default function AdminApplicationsPage() {
                     const clubName = clubNameById.get(item.club_id) ?? prettyClubName(item.club_id)
                     const appliedAt = new Date(item.applied_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
                     const name = getDisplayName(item)
-                    const responseEntries = getResponseEntries(item.responses, item.club_id)
+                    const responseEntries = getResponseEntries(item)
                     const responseCount = responseEntries.length
 
                     return (
