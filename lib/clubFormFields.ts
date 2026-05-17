@@ -51,6 +51,14 @@ const FIELDS_BY_CLUB: Record<string, FieldDef[]> = {
       minLength: 5,
     },
     {
+      key: 'video_submission',
+      kind: 'video',
+      label: 'Video introduction (1–2 minutes)',
+      required: true,
+      helper:
+        'Record or upload a short video explaining why you want to join the Stage Crew. Only the leadership team will review your video.',
+    },
+    {
       key: 'school_events_experience',
       kind: 'textarea',
       label: 'Do you have experience helping school events? (e.g. Interact, Operation Smile)',
@@ -225,6 +233,9 @@ function orderedResponseKeys(o: Record<string, unknown>, clubId: string): string
 
 function formatResponseForStudentEmail(val: unknown, field?: FieldDef): string {
   if (val == null || val === '') return '—'
+  if (field?.kind === 'video' && typeof val === 'string' && val.trim()) {
+    return val.trim()
+  }
   if (field?.kind === 'checkbox') {
     const s = String(val).toLowerCase()
     const yes = val === true || s === 'true' || s === '1' || s === 'yes'
@@ -288,6 +299,9 @@ export function getResponseValueForExport(responses: unknown, clubId: string, ke
   const o = parseResponsesObject(responses)
   if (!o || !(key in o)) return ''
   const field = getClubFormFields(clubId).find((f) => f.key === key)
+  if (field?.kind === 'video' && typeof o[key] === 'string') {
+    return o[key].trim()
+  }
   if (field?.kind === 'dmyDate' && typeof o[key] === 'string') {
     const t = o[key].trim()
     if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return `${formatDobIsoForDisplay(t)} (CE)`

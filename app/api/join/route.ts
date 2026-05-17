@@ -6,6 +6,8 @@ import clubs from '@/data/clubs.json'
 import crypto from 'crypto'
 import { notifyApplicationCountMilestones } from '@/lib/applicationAdminEmails'
 import { sendStudentApplicationReceivedEmail } from '@/lib/email/sendApplicationReceivedEmail'
+import { isAllowedApplicationVideoUrl } from '@/lib/applicationVideo'
+import { getClubFormFields } from '@/lib/clubFormFields'
 import { getExternalSignupMessage, isExternalSignupClub } from '@/lib/externalSignupClubs'
 
 function getStudentIdFromEmail(email: string): string | null {
@@ -244,10 +246,43 @@ export async function POST(request: NextRequest) {
       console.warn('POST /api/join: applications_v2 count failed (milestones skip):', countBeforeError)
     }
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+
     for (const clubId of clubIds) {
       if (isExternalSignupClub(clubId)) {
         insertErrors.push({ clubId, error: { code: 'APPLICATIONS_DISABLED' } })
         continue
+      }
+
+      if (clubId === 'school-show') {
+        const responseMap =
+          responses && typeof responses === 'object' && !Array.isArray(responses)
+            ? (responses as Record<string, unknown>)
+            : {}
+        const videoUrl =
+          typeof responseMap.video_submission === 'string'
+            ? responseMap.video_submission.trim()
+            : ''
+        let schoolShowInvalid = false
+        if (!videoUrl || !supabaseUrl || !isAllowedApplicationVideoUrl(videoUrl, supabaseUrl)) {
+          schoolShowInvalid = true
+          insertErrors.push({ clubId, error: { code: 'INVALID_VIDEO' } })
+        } else {
+          for (const field of getClubFormFields(clubId)) {
+            if (!field.required || field.kind === 'video') continue
+            const val = responseMap[field.key]
+            const empty =
+              val == null ||
+              (typeof val === 'string' && !val.trim()) ||
+              (Array.isArray(val) && val.length === 0)
+            if (empty) {
+              schoolShowInvalid = true
+              insertErrors.push({ clubId, error: { code: 'INVALID_RESPONSES' } })
+              break
+            }
+          }
+        }
+        if (schoolShowInvalid) continue
       }
 
       // Check if application already exists

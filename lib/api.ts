@@ -141,6 +141,10 @@ export const APPLY_ERROR_MESSAGES: Record<string, string> = {
   APPLICATIONS_DISABLED:
     'Applications for this club are run outside ANSxtra. Please check with the club or school for how to sign up.',
   INVALID_RESPONSES: 'Please check your answers and fill in all required fields.',
+  INVALID_VIDEO: 'Please upload your application video before submitting.',
+  FILE_TOO_LARGE: 'Your video file is too large. Please use a shorter or smaller video.',
+  INVALID_FILE_TYPE: 'Please upload a video file (MP4 or MOV), not a photo.',
+  UPLOAD_URL_FAILED: 'Video upload is not available right now. Please try again later.',
 }
 
 export function getApplyErrorMessage(code: string, message?: string): string {

@@ -9,6 +9,7 @@ import {
   getQuestionColumnsForClub,
   getResponseValueForExport,
 } from '@/lib/clubFormFields';
+import { buildSpreadsheetBuffer, statusLabelForExport } from '@/lib/adminExportSpreadsheet';
 
 export const dynamic = 'force-dynamic';
 
@@ -151,6 +152,7 @@ export async function GET(request: NextRequest) {
   const yearGroupValue = request.nextUrl.searchParams.get('yearGroup')?.trim();
   const clubId = request.nextUrl.searchParams.get('clubId')?.trim();
   const statusScope = request.nextUrl.searchParams.get('statusScope')?.trim() ?? 'enrolled';
+  const format = request.nextUrl.searchParams.get('format')?.trim().toLowerCase() ?? 'xlsx';
 
   if (groupBy !== 'year' && groupBy !== 'club') {
     return NextResponse.json({ error: 'groupBy must be either year or club' }, { status: 400 });
@@ -239,11 +241,12 @@ export async function GET(request: NextRequest) {
     const questionColumns = singleClubId ? getQuestionColumnsForClub(singleClubId) : [];
 
     const baseColumns = ['Nickname', 'Full name', 'Year group', 'Email'] as const;
+    const auditColumns = ['Status', 'Applied', 'Application ID'] as const;
     csvHeader = useClubColumn
-      ? ['Club', ...baseColumns, 'Responses']
+      ? ['Club', ...baseColumns, ...auditColumns, 'Responses']
       : questionColumns.length > 0
-        ? [...baseColumns, ...questionColumns.map((q) => q.label)]
-        : [...baseColumns, 'Responses'];
+        ? [...baseColumns, ...auditColumns, ...questionColumns.map((q) => q.label)]
+        : [...baseColumns, ...auditColumns, 'Responses'];
 
     const sorted = [...filtered].sort((a, b) => {
       const ya = getYearForFilter(a);
@@ -269,11 +272,17 @@ export async function GET(request: NextRequest) {
         yearCell,
         emailByUserId.get(row.user_id) ?? '',
       ];
+      const auditCells = [
+        statusLabelForExport(row.status),
+        new Date(row.applied_at).toLocaleDateString('en-GB'),
+        row.id,
+      ];
 
       if (useClubColumn) {
         return [
           clubName,
           ...identityCells,
+          ...auditCells,
           formatApplicationResponsesForExport(row.responses, row.club_id),
         ];
       }
@@ -281,12 +290,14 @@ export async function GET(request: NextRequest) {
       if (questionColumns.length > 0) {
         return [
           ...identityCells,
+          ...auditCells,
           ...questionColumns.map((q) => getResponseValueForExport(row.responses, row.club_id, q.key)),
         ];
       }
 
       return [
         ...identityCells,
+        ...auditCells,
         formatApplicationResponsesForExport(row.responses, row.club_id),
       ];
     });
@@ -327,7 +338,7 @@ export async function GET(request: NextRequest) {
         row.last_name ?? '',
         row.prename ?? '',
         row.responses != null ? formatApplicationResponsesForExport(row.responses, row.club_id) : '',
-        row.status,
+        statusLabelForExport(row.status),
         row.applied_at,
         row.reviewed_at ?? '',
         row.notes ?? '',
@@ -335,32 +346,41 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const csvBody = [csvHeader, ...rows]
-    .map((line) => line.map(csvEscape).join(','))
-    .join('\n');
-  const csv = `\ufeff${csvBody}`;
+  const useXlsx = format !== 'csv';
 
-  let contentDisposition: string;
+  let baseName: string;
   if (groupBy === 'year') {
-    const filename = `applications-year-${yearFilenamePart}-${statusScope}-${date}.csv`;
-    contentDisposition = `attachment; filename="${filename}"`;
+    baseName = `applications-year-${yearFilenamePart}-${statusScope}-${date}`;
   } else if (clubIdAll) {
     const scopePart = statusScope === 'enrolled' ? '' : `-${statusScope}`;
-    const filename = `all-clubs${scopePart}-${date}.csv`;
-    contentDisposition = `attachment; filename="${filename}"`;
+    baseName = `all-clubs${scopePart}-${date}`;
   } else {
     const clubMeta = clubs.find((c) => c.id === clubId);
     const displayName =
       clubMeta?.name && clubMeta.name.trim() ? clubMeta.name : toTitleCase(clubId!);
     const scopeSuffix = statusScope === 'enrolled' ? '' : `-${statusScope}`;
-    const asciiFilename = `${fileSafe(displayName)}${scopeSuffix}-${date}.csv`;
-    const utf8Filename =
-      statusScope === 'enrolled'
-        ? `${displayName} ${date}.csv`
-        : `${displayName} (${statusScope}) ${date}.csv`;
-    const star = encodeURIComponent(utf8Filename);
-    contentDisposition = `attachment; filename="${asciiFilename}"; filename*=UTF-8''${star}`;
+    baseName = `${fileSafe(displayName)}${scopeSuffix}-${date}`;
   }
+
+  const ext = useXlsx ? 'xlsx' : 'csv';
+  const contentDisposition = `attachment; filename="${baseName}.${ext}"`;
+
+  if (useXlsx) {
+    const buffer = buildSpreadsheetBuffer(csvHeader, rows);
+    return new NextResponse(new Uint8Array(buffer), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': contentDisposition,
+        'Cache-Control': 'no-store',
+      },
+    });
+  }
+
+  const csvBody = [csvHeader, ...rows]
+    .map((line) => line.map(csvEscape).join(','))
+    .join('\n');
+  const csv = `\ufeff${csvBody}`;
 
   return new NextResponse(csv, {
     status: 200,

@@ -9,11 +9,11 @@ import { RadioGroup } from '@/components/ui/RadioGroup'
 import { getApplyErrorMessage, submitApplication } from '@/lib/api'
 import { saveApplication, type ClubApplicationPayload } from '@/lib/applications'
 import { getClubFormFields } from '@/lib/clubFormFields'
-import { STAGE_CREW_TEAM_OPTIONS } from '@/lib/schoolShowStageCrew'
 import { getExternalSignupMessage, isExternalSignupClub } from '@/lib/externalSignupClubs'
 import { isValidStoredDobIso } from '@/lib/dmyDate'
 import { TEDX_ARCHIVE_ITEMS } from '@/components/clubs/TEDxLivestreamArchive'
 import { DmyDateField } from '@/components/join/DmyDateField'
+import { VideoSubmissionField } from '@/components/join/VideoSubmissionField'
 import { getClubById } from '@/lib/data'
 import { cn } from '@/lib/utils/cn'
 import { motion } from 'framer-motion'
@@ -82,21 +82,6 @@ const JOIN_FORM_COPY: Partial<Record<string, JoinFormCopy>> = {
 
 function getClubFields(clubId: string): FieldDef[] {
   const base = getClubFormFields(clubId)
-
-  if (clubId === 'school-show') {
-    return base.map((f) => {
-      if (f.key !== 'preferred_team_choice_2') return f
-      return {
-        ...f,
-        options: ({ responses }: { responses: Record<string, ResponseValue> }) => {
-          const first = typeof responses.preferred_team_choice_1 === 'string'
-            ? responses.preferred_team_choice_1
-            : ''
-          return STAGE_CREW_TEAM_OPTIONS.filter((team) => team !== first)
-        },
-      }
-    })
-  }
 
   // Small compatibility shim: only show the "Other" textbox when "Other" is selected.
   if (clubId === 'spark-club') {
@@ -218,6 +203,17 @@ export default function JoinPage() {
         if (!isValidStoredDobIso(s)) {
           newErrors[field.key] = 'Please choose a valid date of birth'
           continue
+        }
+        continue
+      }
+      if (field.kind === 'video') {
+        const url = typeof v === 'string' ? v.trim() : ''
+        if (!url) {
+          newErrors[field.key] = 'Please upload your video before submitting'
+          continue
+        }
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          newErrors[field.key] = 'Video upload is incomplete — please upload again'
         }
         continue
       }
@@ -473,17 +469,7 @@ export default function JoinPage() {
             options={resolvedOptions.map((opt) => ({ value: opt, label: opt }))}
             value={typeof v === 'string' ? v : ''}
             onChange={(value) => {
-              setResponses((prev) => {
-                const next = { ...prev, [field.key]: value }
-                if (
-                  clubId === 'school-show' &&
-                  field.key === 'preferred_team_choice_1' &&
-                  prev.preferred_team_choice_2 === value
-                ) {
-                  delete next.preferred_team_choice_2
-                }
-                return next
-              })
+              setResponses((prev) => ({ ...prev, [field.key]: value }))
               setTouched((prev) => ({ ...prev, [field.key]: true }))
             }}
             error={error}
@@ -558,6 +544,26 @@ export default function JoinPage() {
             </span>
           </label>
           {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+        </div>
+      )
+    }
+
+    if (field.kind === 'video') {
+      return (
+        <div ref={(el) => { fieldRefs.current[field.key] = el }} className="w-full">
+          <VideoSubmissionField
+            fieldKey={field.key}
+            clubId={clubId}
+            label={field.label}
+            helper={typeof field.helper === 'string' ? field.helper : undefined}
+            required={required}
+            value={typeof v === 'string' ? v : ''}
+            onChange={(url) => {
+              setResponses((prev) => ({ ...prev, [field.key]: url }))
+            }}
+            onBlur={() => setTouched((prev) => ({ ...prev, [field.key]: true }))}
+            error={error}
+          />
         </div>
       )
     }

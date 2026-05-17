@@ -7,6 +7,7 @@ import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
 import { Loader2 } from 'lucide-react';
 import clubs from '@/data/clubs.json';
+import { getApplicationResponseDisplayRows } from '@/lib/clubFormFields';
 
 type PendingApplication = {
   id: string;
@@ -44,11 +45,9 @@ function formatFormValue(v: unknown): string {
   }
 }
 
-function getResponseEntries(responses: unknown): [string, string][] {
-  if (!responses || typeof responses !== 'object' || Array.isArray(responses)) {
-    return [];
-  }
-  return Object.entries(responses as Record<string, unknown>).map(([k, v]) => [k, formatFormValue(v)]);
+function getResponseEntries(responses: unknown, clubId: string): [string, string][] {
+  if (!responses) return [];
+  return getApplicationResponseDisplayRows(responses, clubId).map((row) => [row.label, row.value]);
 }
 
 function prettyClubName(clubId: string): string {
@@ -114,7 +113,9 @@ export default function AdminApplicationsPage() {
   const [clubFilter, setClubFilter] = useState<string>('all');
   const [yearFilter, setYearFilter] = useState<number | 'all'>('all');
   const [expandedResponseId, setExpandedResponseId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
 
+  const PAGE_SIZE = 50;
   const sessionEmail = useMemo(() => session?.user?.email ?? '', [session]);
 
   useEffect(() => {
@@ -193,6 +194,23 @@ export default function AdminApplicationsPage() {
       return String(a.id).localeCompare(String(b.id))
     });
   }, [items, view, query, clubFilter, yearFilter, clubNameById]);
+
+  const totalPages = Math.max(1, Math.ceil(visibleItems.length / PAGE_SIZE));
+
+  const paginatedVisibleItems = useMemo(
+    () => visibleItems.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
+    [visibleItems, page]
+  );
+
+  const selectedApplications = useMemo(
+    () => items.filter((item) => selectedIds.has(item.id)),
+    [items, selectedIds]
+  );
+
+  useEffect(() => {
+    const maxPage = Math.max(0, Math.ceil(visibleItems.length / PAGE_SIZE) - 1);
+    if (page > maxPage) setPage(maxPage);
+  }, [visibleItems.length, page]);
 
   async function fetchApplications() {
     setLoading(true);
@@ -308,11 +326,35 @@ export default function AdminApplicationsPage() {
   }
 
   function toggleSelectAll(checked: boolean) {
-    if (!checked) {
-      setSelectedIds(new Set());
-      return;
-    }
-    setSelectedIds(new Set(visibleItems.map((item) => item.id)));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        for (const item of paginatedVisibleItems) next.add(item.id);
+      } else {
+        for (const item of paginatedVisibleItems) next.delete(item.id);
+      }
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  function deselectCurrentPage() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const item of paginatedVisibleItems) next.delete(item.id);
+      return next;
+    });
+  }
+
+  function removeFromSelection(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   }
 
   function selectAllPendingForBulkClub() {
@@ -404,18 +446,18 @@ export default function AdminApplicationsPage() {
     setBulkLoading(false);
   }
 
-  function downloadYearCsv() {
+  function downloadYearExport(fileFormat: 'xlsx' | 'csv') {
     const yg = exportYearGroup === 'all' ? 'all' : String(exportYearGroup);
     window.open(
-      `/api/admin/applications/export?groupBy=year&yearGroup=${encodeURIComponent(yg)}&statusScope=${exportStatusScope}`,
+      `/api/admin/applications/export?groupBy=year&yearGroup=${encodeURIComponent(yg)}&statusScope=${exportStatusScope}&format=${fileFormat}`,
       '_blank'
     );
   }
 
-  function downloadClubCsv() {
+  function downloadClubExport(fileFormat: 'xlsx' | 'csv') {
     if (!exportClubId) return;
     window.open(
-      `/api/admin/applications/export?groupBy=club&clubId=${encodeURIComponent(exportClubId)}&statusScope=${exportStatusScope}`,
+      `/api/admin/applications/export?groupBy=club&clubId=${encodeURIComponent(exportClubId)}&statusScope=${exportStatusScope}&format=${fileFormat}`,
       '_blank'
     );
   }
@@ -430,12 +472,16 @@ export default function AdminApplicationsPage() {
 
   return (
     <div className="min-h-screen bg-brand-deep pt-24 pb-12">
-      <Container size="narrow">
+      <Container size="wide">
         <div className="space-y-6">
           <header>
             <h1 className="text-3xl font-bold text-white">Admin Applications</h1>
-            <p className="text-white/70 mt-2">Review pending applications, approve with an optional message, or deny.</p>
-            <p className="text-white/50 text-sm mt-1">Signed in as: {sessionEmail || 'Unknown user'}</p>
+            <p className="text-white/70 mt-2">
+              Review applications, change status (Pending / Enrolled / Denied), and export spreadsheets for club leaders.
+            </p>
+            <p className="text-white/50 text-sm mt-1">
+              Signed in as: {sessionEmail || 'Unknown user'} · {items.length} application(s) loaded
+            </p>
             {process.env.NODE_ENV !== 'production' && (
               <div className="mt-3">
                 <Button variant="outline" size="sm" onClick={seedMockData}>
@@ -476,7 +522,9 @@ export default function AdminApplicationsPage() {
             >
               All
             </Button>
-            <span className="text-white/50 text-sm ml-auto">{visibleItems.length} shown</span>
+            <span className="text-white/50 text-sm ml-auto">
+              {visibleItems.length} matching · page {page + 1} of {totalPages}
+            </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -484,7 +532,7 @@ export default function AdminApplicationsPage() {
                 <label className="block text-white/70 text-sm mb-1">Search</label>
                 <input
                   value={query}
-                  onChange={(e) => { setQuery(e.target.value); setSelectedIds(new Set()); }}
+                  onChange={(e) => { setQuery(e.target.value); setPage(0); }}
                   placeholder="Name, student ID, email, club, year…"
                   className="w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-purple/60"
                 />
@@ -493,7 +541,7 @@ export default function AdminApplicationsPage() {
                 <label className="block text-white/70 text-sm mb-1">Club</label>
                 <select
                   value={clubFilter}
-                  onChange={(e) => { setClubFilter(e.target.value); setSelectedIds(new Set()); }}
+                  onChange={(e) => { setClubFilter(e.target.value); setPage(0); }}
                   className="w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white"
                 >
                   <option value="all" className="text-black">All clubs</option>
@@ -509,7 +557,7 @@ export default function AdminApplicationsPage() {
                   onChange={(e) => {
                     const v = e.target.value
                     setYearFilter(v === 'all' ? 'all' : Number(v))
-                    setSelectedIds(new Set())
+                    setPage(0)
                   }}
                   className="w-full rounded-lg bg-white/10 border border-white/20 px-3 py-2 text-white"
                 >
@@ -540,6 +588,43 @@ export default function AdminApplicationsPage() {
             </div>
           )}
 
+          {selectedIds.size > 0 && (
+            <div className="bg-brand-pink/10 border border-brand-pink/30 rounded-lg p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-white font-medium text-sm">
+                  {selectedIds.size} selected — uncheck rows in the table, or click × below to remove
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={deselectCurrentPage}>
+                    Deselect this page
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={clearSelection}>
+                    Clear all
+                  </Button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                {selectedApplications.slice(0, 40).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => removeFromSelection(item.id)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-brand-navy/80 px-2.5 py-1 text-xs text-white/90 hover:border-brand-pink/50 hover:bg-brand-pink/10"
+                    title="Click to deselect"
+                  >
+                    <span className="max-w-[140px] truncate">{getDisplayName(item)}</span>
+                    <span className="text-white/40">×</span>
+                  </button>
+                ))}
+                {selectedApplications.length > 40 && (
+                  <span className="text-white/50 text-xs self-center">
+                    +{selectedApplications.length - 40} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-[1500px] w-full text-[11px] leading-tight">
@@ -560,13 +645,13 @@ export default function AdminApplicationsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
-                  {visibleItems.map((item) => {
+                  {paginatedVisibleItems.map((item) => {
                     const isSaving = savingId === item.id
                     const st = item.status
                     const clubName = clubNameById.get(item.club_id) ?? prettyClubName(item.club_id)
                     const appliedAt = new Date(item.applied_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
                     const name = getDisplayName(item)
-                    const responseEntries = getResponseEntries(item.responses)
+                    const responseEntries = getResponseEntries(item.responses, item.club_id)
                     const responseCount = responseEntries.length
 
                     return (
@@ -688,8 +773,16 @@ export default function AdminApplicationsPage() {
                                   key={k}
                                   className="grid grid-cols-1 sm:grid-cols-[minmax(7rem,12rem)_1fr] gap-x-3 gap-y-0.5 text-[11px] border-b border-white/5 pb-1.5 last:border-0"
                                 >
-                                  <div className="text-white/55 font-medium break-words">{formatFormFieldKey(k)}</div>
-                                  <div className="text-white/90 break-words font-mono whitespace-pre-wrap">{v}</div>
+                                  <div className="text-white/55 font-medium break-words">{k}</div>
+                                  <div className="text-white/90 break-words whitespace-pre-wrap">
+                                    {(v.startsWith('http://') || v.startsWith('https://')) && /video/i.test(k) ? (
+                                      <a href={v} target="_blank" rel="noopener noreferrer" className="text-brand-pink font-medium underline underline-offset-2 break-all">
+                                        Watch application video
+                                      </a>
+                                    ) : (
+                                      <span className="font-mono">{v}</span>
+                                    )}
+                                  </div>
                                 </div>
                               ))}
                             </div>
@@ -703,6 +796,23 @@ export default function AdminApplicationsPage() {
               </table>
             </div>
           </div>
+
+          {visibleItems.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-white/70">
+              <span>
+                Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, visibleItems.length)} of{' '}
+                {visibleItems.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button type="button" size="sm" variant="outline" disabled={page <= 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+                  Previous
+                </Button>
+                <Button type="button" size="sm" variant="outline" disabled={page >= totalPages - 1} onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}>
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div className="bg-white/5 border border-white/10 rounded-lg p-5 space-y-4">
             <h2 className="text-lg font-semibold text-white">Bulk actions (by club)</h2>
@@ -735,11 +845,14 @@ export default function AdminApplicationsPage() {
                 <label className="text-white/80 text-sm flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={visibleItems.length > 0 && selectedIds.size === visibleItems.length}
+                    checked={
+                      paginatedVisibleItems.length > 0 &&
+                      paginatedVisibleItems.every((item) => selectedIds.has(item.id))
+                    }
                     onChange={(e) => toggleSelectAll(e.target.checked)}
                     className="h-4 w-4"
                   />
-                  Select all in current table view
+                  Select all on this page ({paginatedVisibleItems.length} rows)
                 </label>
                 <span className="text-white/60 text-sm">{selectedIds.size} selected</span>
               </div>
@@ -787,9 +900,10 @@ export default function AdminApplicationsPage() {
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-lg p-5 space-y-4">
-            <h2 className="text-lg font-semibold text-white">CSV Downloads</h2>
+            <h2 className="text-lg font-semibold text-white">Spreadsheet downloads</h2>
             <p className="text-white/70 text-sm">
-              Download CSVs by year or club. Choose enrolled, pending, or all application statuses.
+              Use <strong className="text-white/90">Excel (.xlsx)</strong> for club leaders — column widths auto-fit so full questions stay visible.
+              CSV is still available but may truncate headers in Google Sheets until you resize columns manually.
             </p>
 
             <div className="space-y-2">
@@ -825,7 +939,8 @@ export default function AdminApplicationsPage() {
                       <option key={year} value={year} className="text-black">Year {year}</option>
                     ))}
                   </select>
-                  <Button onClick={downloadYearCsv} variant="outline">Download</Button>
+                  <Button onClick={() => downloadYearExport('xlsx')} variant="outline">Excel</Button>
+                  <Button onClick={() => downloadYearExport('csv')} variant="outline" className="text-white/70">CSV</Button>
                 </div>
               </div>
 
@@ -844,7 +959,8 @@ export default function AdminApplicationsPage() {
                         <option key={club.id} value={club.id} className="text-black">{club.name}</option>
                       ))}
                   </select>
-                  <Button onClick={downloadClubCsv} variant="outline" disabled={!exportClubId}>Download</Button>
+                  <Button onClick={() => downloadClubExport('xlsx')} variant="outline" disabled={!exportClubId}>Excel</Button>
+                  <Button onClick={() => downloadClubExport('csv')} variant="outline" disabled={!exportClubId} className="text-white/70">CSV</Button>
                 </div>
               </div>
             </div>
