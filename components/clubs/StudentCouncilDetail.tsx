@@ -1,6 +1,5 @@
 'use client'
 
-import { StudentCouncilHouseSelection } from '@/components/clubs/StudentCouncilHouseSelection'
 import { STUDENT_COUNCIL_DOES, STUDENT_COUNCIL_INTRO } from '@/lib/studentCouncilContent'
 import { cn } from '@/lib/utils/cn'
 import type { LucideIcon } from 'lucide-react'
@@ -73,8 +72,6 @@ export function StudentCouncilDetail({ tintHex }: StudentCouncilDetailProps) {
           ))}
         </ul>
       </div>
-
-      <StudentCouncilHouseSelection tintHex={tintHex} />
     </div>
   )
 }

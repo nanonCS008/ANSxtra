@@ -30,15 +30,3 @@ export const STUDENT_COUNCIL_DOES: { title: string; body: string; icon: LucideIc
     icon: Users,
   },
 ]
-
-export const ANS_HOUSES = [
-  { id: 'padhavi', name: 'Padhavi', color: '#22c55e', colorMuted: 'rgba(34, 197, 94, 0.2)' },
-  { id: 'dehjo', name: 'Dehjo', color: '#ef4444', colorMuted: 'rgba(239, 68, 68, 0.2)' },
-  { id: 'nadhi', name: 'Nadhi', color: '#3b82f6', colorMuted: 'rgba(59, 130, 246, 0.2)' },
-  { id: 'whayu', name: 'Whayu', color: '#eab308', colorMuted: 'rgba(234, 179, 8, 0.2)' },
-] as const
-
-export const STUDENT_COUNCIL_YEAR_GROUPS = [7, 8, 9, 10, 11, 12, 13] as const
-
-export const STUDENT_COUNCIL_REP_STRUCTURE =
-  'Each year group (Y7–Y13) has four Student Council reps—one chosen from each house. That way every year and every house has a voice on Council.'
