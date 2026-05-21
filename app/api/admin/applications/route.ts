@@ -9,13 +9,6 @@ import { buildStudentApplicationStatusEmailHtml } from '@/lib/email/studentAppli
 
 export const dynamic = 'force-dynamic';
 
-/** Shown in the student approval email “When we meet” block only (TEDx first meeting). */
-const TEDX_APPROVAL_FIRST_MEETING = {
-  meetingDay: 'Monday 8th June 2026',
-  meetingTime: '12:50pm-1:15pm',
-  location: 'Room 12-302',
-} as const;
-
 type UpdatePayload = {
   id?: string;
   ids?: string[];
@@ -73,15 +66,6 @@ async function sendStatusNotifications(params: {
 
   const supabase = getAdminClient();
   const clubName = clubs.find((club) => club.id === params.clubId)?.name ?? toTitleCase(params.clubId);
-  const clubMeta = clubs.find((club) => club.id === params.clubId);
-  const isTedxApproval = params.clubId === 'tedx' && params.status === 'approved';
-  const meetingDay = isTedxApproval
-    ? TEDX_APPROVAL_FIRST_MEETING.meetingDay
-    : (clubMeta?.meetingDay ?? null);
-  const meetingTime = isTedxApproval
-    ? TEDX_APPROVAL_FIRST_MEETING.meetingTime
-    : (clubMeta?.meetingTime ?? null);
-  const location = isTedxApproval ? TEDX_APPROVAL_FIRST_MEETING.location : (clubMeta?.location ?? null);
   const statusLabel = params.status === 'approved' ? 'Approved' : 'Rejected';
   const nickname = params.studentNickname?.trim() || '';
   const nicknameSuffix = nickname ? ` (${nickname})` : '';
@@ -101,6 +85,7 @@ async function sendStatusNotifications(params: {
 
   const studentEmailHtml = buildStudentApplicationStatusEmailHtml({
     clubName,
+    clubId: params.clubId,
     status: params.status,
     studentFullName: fullName || null,
     notes: params.notes,
@@ -108,9 +93,6 @@ async function sendStatusNotifications(params: {
       params.status === 'approved' && params.acceptanceMessage?.trim()
         ? params.acceptanceMessage.trim()
         : null,
-    meetingDay,
-    meetingTime,
-    location,
   });
 
   if (userEmail) {
