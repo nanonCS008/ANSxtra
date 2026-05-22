@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
 import clubs from '@/data/clubs.json';
 import { formatResendError, getResendClient, getResendFrom } from '@/lib/resendConfig';
+import { getClubEmailDisplayName } from '@/lib/email/clubEmailDisplayNames';
 import { buildStudentApplicationStatusEmailHtml } from '@/lib/email/studentApplicationStatusHtml';
 
 export const dynamic = 'force-dynamic';
@@ -65,7 +66,8 @@ async function sendStatusNotifications(params: {
   }
 
   const supabase = getAdminClient();
-  const clubName = clubs.find((club) => club.id === params.clubId)?.name ?? toTitleCase(params.clubId);
+  const clubNameRaw = clubs.find((club) => club.id === params.clubId)?.name ?? toTitleCase(params.clubId);
+  const clubName = getClubEmailDisplayName(params.clubId, clubNameRaw);
   const statusLabel = params.status === 'approved' ? 'Approved' : 'Rejected';
   const nickname = params.studentNickname?.trim() || '';
   const nicknameSuffix = nickname ? ` (${nickname})` : '';

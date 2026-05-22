@@ -1,24 +1,63 @@
-/** First-meeting copy for student approval emails only (not stored on applications). */
-export const CLUB_APPROVAL_FIRST_MEETING_DETAILS: Record<string, string> = {
-  'unicef-ambassador': 'Tuesday 26th May, Lunch 2, 14-101',
-  'school-show': 'Details will be posted later!',
-  'eco-committee': 'Friday 29th May, Milk break, 12-307',
-  'interact-club': 'Wednesday 27th May, Milk break, 12-209',
-  'operation-smile': 'Tuesday 26th May, Lunch 2, 12-101',
-  'enterprise-club': 'Friday 29th May, Milk break, 12-101',
-  mun: 'Wednesday 27th May, Lunch 1, 12-209',
-  'spark-club': 'Wednesday 27th May, Milk break, 12-101',
-  tedx: 'Thursday 28th May, Lunch 2, 12-302',
-  'duke-of-edinburgh': `Friday – Period 6
+export type ClubApprovalMeetingSchedule = {
+  meetingDay: string;
+  meetingTime: string;
+  location: string;
+  /** Shown below the table when extra context is needed (e.g. Duke of Edinburgh). */
+  notes?: string;
+};
 
-Meeting Points for Current Participants and Award Leaders starting this week:
-Bronze – 3-101
-Silver – 14-101
-Gold – 14-102
-
-Please note: Award Leaders will email current participants for each level about the schedule of the meeting. The meeting will be by group, not all at once, so please wait for more information from Award Leaders.
-
-For new applicants for all levels, we will inform you via email of the assembly time and location soon. Please wait for further notice.`,
+/** First-meeting schedule for student approval emails only (not stored on applications). */
+export const CLUB_APPROVAL_FIRST_MEETING_DETAILS: Record<string, ClubApprovalMeetingSchedule> = {
+  'unicef-ambassador': {
+    meetingDay: 'Tuesday 26th May',
+    meetingTime: 'Lunch 2',
+    location: '14-101',
+  },
+  'school-show': {
+    meetingDay: 'To be announced',
+    meetingTime: '—',
+    location: 'Details will be posted later!',
+  },
+  'eco-committee': {
+    meetingDay: 'Friday 29th May',
+    meetingTime: 'Milk break',
+    location: '12-307',
+  },
+  'interact-club': {
+    meetingDay: 'Wednesday 27th May',
+    meetingTime: 'Milk break',
+    location: '12-209',
+  },
+  'operation-smile': {
+    meetingDay: 'Tuesday 26th May',
+    meetingTime: 'Lunch 2',
+    location: '12-101',
+  },
+  'enterprise-club': {
+    meetingDay: 'Friday 29th May',
+    meetingTime: 'Milk break',
+    location: '12-101',
+  },
+  mun: {
+    meetingDay: 'Wednesday 27th May',
+    meetingTime: 'Lunch 1',
+    location: '12-209',
+  },
+  'spark-club': {
+    meetingDay: 'Wednesday 27th May',
+    meetingTime: 'Milk break',
+    location: '12-101',
+  },
+  tedx: {
+    meetingDay: 'Thursday 28th May',
+    meetingTime: 'Lunch 2',
+    location: '12-302',
+  },
+  'duke-of-edinburgh': {
+    meetingDay: '',
+    meetingTime: '',
+    location: 'Miss Eden will email you details later',
+  },
 };
 
 const CLUB_NAME_ALIASES: Record<string, string> = {
@@ -43,7 +82,11 @@ const CLUB_NAME_ALIASES: Record<string, string> = {
   dofe: 'duke-of-edinburgh',
 };
 
-export const APPROVAL_MEETING_DETAILS_FALLBACK = 'Meeting details will be shared soon.';
+export const APPROVAL_MEETING_DETAILS_FALLBACK: ClubApprovalMeetingSchedule = {
+  meetingDay: 'To be announced',
+  meetingTime: '—',
+  location: 'Meeting details will be shared soon.',
+};
 
 function normalizeClubKey(value: string): string {
   return value.trim().toLowerCase().replace(/\s+/g, '-');
@@ -65,10 +108,10 @@ function resolveClubId(clubId?: string | null, clubName?: string | null): string
   return id || slugFromName || null;
 }
 
-export function getClubApprovalFirstMeetingDetails(
+export function getClubApprovalMeetingSchedule(
   clubId?: string | null,
   clubName?: string | null
-): string {
+): ClubApprovalMeetingSchedule {
   const resolvedId = resolveClubId(clubId, clubName);
   if (resolvedId && CLUB_APPROVAL_FIRST_MEETING_DETAILS[resolvedId]) {
     return CLUB_APPROVAL_FIRST_MEETING_DETAILS[resolvedId];

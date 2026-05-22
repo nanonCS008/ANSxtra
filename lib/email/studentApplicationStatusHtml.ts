@@ -1,4 +1,7 @@
-import { getClubApprovalFirstMeetingDetails } from '@/lib/email/clubApprovalMeetingDetails';
+import {
+  getClubApprovalMeetingSchedule,
+  type ClubApprovalMeetingSchedule,
+} from '@/lib/email/clubApprovalMeetingDetails';
 import { escapeAttrUrl, getAnsxtraFeedbackFormUrl, getStudentEmailSupportFooterHtml } from '@/lib/resendConfig';
 
 const FONT =
@@ -24,15 +27,38 @@ export type StudentApplicationStatusEmailParams = {
   clubId?: string | null;
 };
 
-function firstMeetingDetailsBlock(p: StudentApplicationStatusEmailParams): string {
+function whenWeMeetTableRows(schedule: ClubApprovalMeetingSchedule): string {
+  const rows: { label: string; value: string }[] = [
+    { label: 'Day', value: schedule.meetingDay },
+    { label: 'Time', value: schedule.meetingTime },
+    { label: 'Location', value: schedule.location },
+  ];
+
+  return rows
+    .filter((row) => row.value.trim())
+    .map(
+      (row) =>
+        `<tr><td style="padding:6px 0;color:#64748b;font-size:12px;width:96px;vertical-align:top;">${escapeHtml(row.label)}</td><td style="padding:6px 0;color:#0f172a;font-size:14px;font-weight:600;">${escapeHtml(row.value)}</td></tr>`
+    )
+    .join('');
+}
+
+function whenWeMeetBlock(p: StudentApplicationStatusEmailParams): string {
   if (p.status !== 'approved') return '';
 
-  const details = getClubApprovalFirstMeetingDetails(p.clubId, p.clubName);
+  const schedule = getClubApprovalMeetingSchedule(p.clubId, p.clubName);
+  const tableRows = whenWeMeetTableRows(schedule);
+  const notes = schedule.notes?.trim()
+    ? `<p style="margin:12px 0 0;font-size:13px;color:#475569;line-height:1.55;white-space:pre-wrap;">${escapeHtml(schedule.notes)}</p>`
+    : '';
 
   return `
     <div style="margin-top:20px;padding:16px 18px;border-radius:12px;background:#f8fafc;border:1px solid #e2e8f0;">
-      <div style="font-size:11px;font-weight:700;color:${BRAND_PINK};text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">First meeting details</div>
-      <div style="white-space:pre-wrap;color:#0f172a;line-height:1.6;font-size:14px;font-weight:500;">${escapeHtml(details)}</div>
+      <div style="font-size:11px;font-weight:700;color:${BRAND_PINK};text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">When we meet</div>
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+        ${tableRows}
+      </table>
+      ${notes}
       <p style="margin:12px 0 0;font-size:12px;color:#64748b;line-height:1.5;">Please confirm details with your club leaders if anything changes.</p>
     </div>`;
 }
@@ -86,7 +112,7 @@ export function buildStudentApplicationStatusEmailHtml(p: StudentApplicationStat
         </div>`
       : '';
 
-  const schedule = firstMeetingDetailsBlock(p);
+  const schedule = whenWeMeetBlock(p);
   const feedback = p.status === 'approved' ? approvalFeedbackBlock() : '';
 
   return `<!DOCTYPE html>
