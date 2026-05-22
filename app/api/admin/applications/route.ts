@@ -3,12 +3,12 @@ import { getServerSession } from 'next-auth';
 import { createClient } from '@supabase/supabase-js';
 import { authOptions } from '@/lib/auth';
 import { isAdminEmail } from '@/lib/admin';
-import clubs from '@/data/clubs.json';
-import { formatResendError, getResendClient, getResendFrom } from '@/lib/resendConfig';
-import { getClubEmailDisplayName } from '@/lib/email/clubEmailDisplayNames';
-import { buildStudentApplicationStatusEmailHtml } from '@/lib/email/studentApplicationStatusHtml';
+import { sendBulkApplicationStatusEmails } from '@/lib/email/sendApplicationStatusEmails';
+import { getResendClient, getResendFrom } from '@/lib/resendConfig';
 
 export const dynamic = 'force-dynamic';
+/** Bulk approval can send many emails; allow up to 5 minutes on Vercel Pro (Hobby caps at 60s). */
+export const maxDuration = 300;
 
 type UpdatePayload = {
   id?: string;
@@ -24,101 +24,6 @@ function getAdminClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
-}
-
-function toTitleCase(value: string): string {
-  return value.replace(/-/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-type SendNotificationResult = {
-  failures: string[];
-  missingStudentEmail: boolean;
-};
-
-async function sendStatusNotifications(params: {
-  userId: string;
-  clubId: string;
-  status: 'approved' | 'rejected';
-  notes: string | null;
-  reviewedByEmail: string;
-  acceptanceMessage?: string | null;
-  /** From `applications_v2.email` at apply time; used if Auth email is missing. */
-  applicationEmail?: string | null;
-  /** Student nickname (Thai prename) captured on apply. */
-  studentNickname?: string | null;
-  /** Student name captured on apply (first + last). */
-  studentFullName?: string | null;
-}): Promise<SendNotificationResult> {
-  const failures: string[] = [];
-  const resend = getResendClient();
-  const from = getResendFrom();
-
-  if (!resend) {
-    return { failures, missingStudentEmail: false };
-  }
-
-  const supabase = getAdminClient();
-  const clubNameRaw = clubs.find((club) => club.id === params.clubId)?.name ?? toTitleCase(params.clubId);
-  const clubName = getClubEmailDisplayName(params.clubId, clubNameRaw);
-  const statusLabel = params.status === 'approved' ? 'Approved' : 'Rejected';
-  const nickname = params.studentNickname?.trim() || '';
-  const nicknameSuffix = nickname ? ` (${nickname})` : '';
-  const fullName = params.studentFullName?.trim() || '';
-
-  const { data: userData, error: userError } = await supabase.auth.admin.getUserById(params.userId);
-  if (userError) {
-    console.error('Failed to fetch user email for notification:', userError);
-  }
-
-  const authEmail = userData?.user?.email?.trim() || null;
-  const storedEmail = params.applicationEmail?.trim() || null;
-  const userEmail = authEmail || storedEmail;
-  if (!authEmail && storedEmail) {
-    console.warn('Using application row email for notification (Auth email missing):', params.userId);
-  }
-
-  const studentEmailHtml = buildStudentApplicationStatusEmailHtml({
-    clubName,
-    clubId: params.clubId,
-    status: params.status,
-    studentFullName: fullName || null,
-    notes: params.notes,
-    acceptanceMessage:
-      params.status === 'approved' && params.acceptanceMessage?.trim()
-        ? params.acceptanceMessage.trim()
-        : null,
-  });
-
-  if (userEmail) {
-    const { error } = await resend.emails.send({
-      from,
-      to: userEmail,
-      subject: `${clubName} — Application ${statusLabel}${nicknameSuffix}`,
-      html: studentEmailHtml,
-    });
-    if (error) {
-      const detail = formatResendError(error);
-      console.error('Resend student email failed:', detail);
-      failures.push(`Student (${userEmail}): ${detail}`);
-    }
-  } else {
-    const msg = `No student email (Auth + application row empty) for user_id ${params.userId}`;
-    console.warn(msg);
-    failures.push(msg);
-  }
-
-  return {
-    failures,
-    missingStudentEmail: !userEmail,
-  };
 }
 
 async function authorizeAdmin() {
@@ -189,8 +94,7 @@ export async function PATCH(request: NextRequest) {
     .in('id', targetIds)
     .select(
       'id,user_id,club_id,status,applied_at,reviewed_at,notes,student_id,first_name,last_name,prename,year,email,submitted_at,responses'
-    )
-
+    );
 
   if (error) {
     console.error('Admin applications PATCH failed:', error);
@@ -204,33 +108,32 @@ export async function PATCH(request: NextRequest) {
 
   const resendConfigured = !!getResendClient();
   const fromUsed = getResendFrom();
-  const failureSamples: string[] = [];
+  let failureSamples: string[] = [];
   let missingStudentEmailCount = 0;
+  let emailsSent = 0;
+  let emailsFailed = 0;
 
   if (!resendConfigured) {
-    failureSamples.push('RESEND_API_KEY is not set — no emails were sent.');
+    failureSamples = ['RESEND_API_KEY is not set — no emails were sent.'];
     console.warn('RESEND_API_KEY is not set; skipping application status emails.');
   } else {
-    for (const row of updatedRows) {
-      const first = (row as { first_name?: string | null }).first_name ?? '';
-      const last = (row as { last_name?: string | null }).last_name ?? '';
-      const fullName = `${String(first).trim()} ${String(last).trim()}`.trim() || null;
-      const r = await sendStatusNotifications({
-        userId: row.user_id,
-        clubId: row.club_id,
+    const report = await sendBulkApplicationStatusEmails({
+      rows: updatedRows.map((row) => ({
+        user_id: row.user_id,
+        club_id: row.club_id,
         status: row.status as 'approved' | 'rejected',
         notes: row.notes,
-        reviewedByEmail: auth.session.user.email?.trim() || '(unknown)',
-        acceptanceMessage,
-        applicationEmail: (row as { email?: string | null }).email ?? null,
-        studentNickname: (row as { prename?: string | null }).prename ?? null,
-        studentFullName: fullName,
-      });
-      if (r.missingStudentEmail) missingStudentEmailCount += 1;
-      for (const f of r.failures) {
-        if (failureSamples.length < 30) failureSamples.push(f);
-      }
-    }
+        first_name: (row as { first_name?: string | null }).first_name,
+        last_name: (row as { last_name?: string | null }).last_name,
+        prename: (row as { prename?: string | null }).prename,
+        email: (row as { email?: string | null }).email,
+      })),
+      acceptanceMessage,
+    });
+    failureSamples = report.failures;
+    missingStudentEmailCount = report.missingStudentEmailCount;
+    emailsSent = report.emailsSent;
+    emailsFailed = report.emailsFailed;
   }
 
   const emailReport = {
@@ -239,6 +142,8 @@ export async function PATCH(request: NextRequest) {
     failureSamples,
     missingStudentEmailCount,
     applicationsUpdated: updatedRows.length,
+    emailsSent,
+    emailsFailed,
   };
 
   if (ids.length > 0) {

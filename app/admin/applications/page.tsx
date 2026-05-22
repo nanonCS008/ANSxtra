@@ -63,6 +63,8 @@ type EmailReport = {
   failureSamples: string[];
   missingStudentEmailCount: number;
   applicationsUpdated: number;
+  emailsSent?: number;
+  emailsFailed?: number;
 };
 
 function formatEmailReportSummary(report: EmailReport | undefined): string {
@@ -73,10 +75,17 @@ function formatEmailReportSummary(report: EmailReport | undefined): string {
       'Emails were not sent: add RESEND_API_KEY=re_… from resend.com to .env.local and restart the dev server.'
     );
   } else if (report.failureSamples.length === 0 && report.missingStudentEmailCount === 0) {
+    const sent = report.emailsSent ?? report.applicationsUpdated;
     bits.push(
-      'Resend accepted the notification sends — check inboxes (and spam) and the Resend dashboard for delivery.'
+      `Resend accepted ${sent} notification email(s) — check inboxes (and spam) and the Resend dashboard for delivery.`
     );
   } else {
+    if (typeof report.emailsSent === 'number') {
+      bits.push(`Emails sent: ${report.emailsSent}.`);
+    }
+    if (typeof report.emailsFailed === 'number' && report.emailsFailed > 0) {
+      bits.push(`Emails failed: ${report.emailsFailed}.`);
+    }
     if (report.missingStudentEmailCount > 0) {
       bits.push(`${report.missingStudentEmailCount} row(s) had no student email (Auth + saved application email were both empty).`);
     }
